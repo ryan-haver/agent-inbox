@@ -3,6 +3,7 @@
 # Agent Inbox - Docker Entrypoint
 # =============================================================================
 # Provides helpful startup information including actual accessible URLs
+# Automatically detects: Bridge, MACVLAN, Host networking modes
 # =============================================================================
 
 set -e
@@ -12,37 +13,100 @@ echo "🚀 Agent Inbox - Starting..."
 echo "=================================================="
 echo ""
 
-# Detect host IP addresses (may have multiple interfaces)
-HOST_IPS=$(hostname -i 2>/dev/null || echo "unavailable")
+# Detect container IP addresses (may have multiple interfaces)
+CONTAINER_IPS=$(hostname -i 2>/dev/null || echo "unavailable")
 
-# Try to detect the default gateway (usually the Docker host)
+# Try to detect the default gateway (usually the Docker host in bridge mode)
 GATEWAY_IP=$(ip route | grep default | awk '{print $3}' 2>/dev/null || echo "")
 
-# Get the mapped port from environment (if provided by Docker)
-MAPPED_PORT="${PORT:-3000}"
+# Get all network interfaces and IPs for MACVLAN detection
+ALL_IPS=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '^127\.' || echo "")
+
+# Detect network mode
+NETWORK_MODE="unknown"
+if [ -n "$GATEWAY_IP" ] && [ "$GATEWAY_IP" != "0.0.0.0" ]; then
+    # Check if we're in a typical Docker bridge network (172.x, 10.x ranges)
+    case "$CONTAINER_IPS" in
+        172.17.*|172.18.*|172.19.*|172.2*.*|172.3*.*)
+            NETWORK_MODE="bridge"
+            ;;
+        10.*)
+            NETWORK_MODE="bridge"
+            ;;
+        192.168.*)
+            # Could be MACVLAN if IP is in typical LAN range
+            NETWORK_MODE="macvlan"
+            ;;
+        *)
+            NETWORK_MODE="bridge"
+            ;;
+    esac
+elif [ -z "$GATEWAY_IP" ] || [ "$GATEWAY_IP" = "0.0.0.0" ]; then
+    NETWORK_MODE="host"
+fi
+
+# Get mapped port from environment variables
+# HOST_PORT can be passed as env var from Unraid template
+MAPPED_PORT="${HOST_PORT:-${PORT:-3000}}"
 
 echo "📍 Container Information:"
-echo "   - Container IP: ${HOST_IPS}"
+echo "   - Container IP(s): ${CONTAINER_IPS}"
+echo "   - Network Mode: ${NETWORK_MODE}"
 echo "   - Internal Port: 3000"
 echo "   - Environment: ${NODE_ENV:-production}"
 echo ""
 
-echo "🌐 Access Agent Inbox at:"
-echo "   - Local (in container): http://localhost:3000"
-echo "   - Container network: http://${HOST_IPS}:3000"
+echo "🌐 Access Agent Inbox:"
+echo ""
 
-if [ -n "$GATEWAY_IP" ]; then
-    echo "   - Docker host (likely): http://${GATEWAY_IP}:${MAPPED_PORT}"
-fi
+# Provide URLs based on detected network mode
+case "$NETWORK_MODE" in
+    "macvlan")
+        echo "   ✅ MACVLAN DETECTED - Container has real network IP"
+        echo ""
+        for IP in $ALL_IPS; do
+            echo "   🔗 http://${IP}:3000"
+        done
+        echo ""
+        echo "   💡 Use any of the above URLs from any device on your network"
+        ;;
+    
+    "host")
+        echo "   ✅ HOST MODE DETECTED - Container uses host networking"
+        echo ""
+        echo "   🔗 http://YOUR_SERVER_IP:3000"
+        echo ""
+        echo "   💡 Access via your server's IP address on port 3000"
+        ;;
+    
+    "bridge"|*)
+        echo "   ✅ BRIDGE MODE DETECTED - Standard Docker networking"
+        echo ""
+        echo "   📍 From inside Docker network:"
+        echo "      http://${CONTAINER_IPS}:3000"
+        echo ""
+        if [ -n "$GATEWAY_IP" ] && [ "$GATEWAY_IP" != "0.0.0.0" ]; then
+            echo "   📍 From host/external (likely):"
+            echo "      http://${GATEWAY_IP}:${MAPPED_PORT}"
+            echo ""
+        fi
+        
+        if [ "$MAPPED_PORT" != "3000" ]; then
+            echo "   💡 You mapped host port ${MAPPED_PORT} → container port 3000"
+            echo "      Access at: http://YOUR_SERVER_IP:${MAPPED_PORT}"
+        else
+            echo "   💡 Access at: http://YOUR_SERVER_IP:3000"
+            echo "      (or your custom mapped port if different)"
+        fi
+        ;;
+esac
 
 echo ""
-echo "💡 If you mapped to a different host port (e.g., 3006),"
-echo "   use: http://YOUR_SERVER_IP:YOUR_MAPPED_PORT"
-echo ""
-echo "⚙️  Configuration:"
-echo "   - Open Settings (gear icon) in the web UI"
-echo "   - Add your LangSmith API key"
-echo "   - Connect to your Executive AI Assistant deployment"
+echo "⚙️  Next Steps:"
+echo "   1. Open the web UI in your browser"
+echo "   2. Click Settings (gear icon)"
+echo "   3. Add your LangSmith API key"
+echo "   4. Connect to Executive AI Assistant deployment"
 echo ""
 echo "=================================================="
 echo "📋 Starting Next.js server..."
