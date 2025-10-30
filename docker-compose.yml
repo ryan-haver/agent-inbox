@@ -1,0 +1,51 @@
+services:
+  agent-inbox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-inbox
+    image: ghcr.io/ryan-haver/agent-inbox:latest
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Ports
+    ports:
+      - "3000:3000"  # Agent Inbox Web UI
+    
+    # Environment variables (all optional - configured in browser)
+    environment:
+      # Node environment
+      - NODE_ENV=production
+      
+      # Disable telemetry
+      - NEXT_TELEMETRY_DISABLED=1
+      
+      # Optional: Pre-configure deployment URL (can also be set in UI)
+      # - NEXT_PUBLIC_LANGGRAPH_API_URL=http://executive-ai-assistant:2024
+      
+      # Optional: Pre-configure LangSmith API key (can also be set in UI)
+      # - NEXT_PUBLIC_LANGSMITH_API_KEY=
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Network configuration
+    # Uncomment to link with Executive AI Assistant container
+    # links:
+    #   - executive-ai-assistant
+    
+    # Resource limits (adjust based on your needs)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1.0'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.25'
+    #       memory: 128M
