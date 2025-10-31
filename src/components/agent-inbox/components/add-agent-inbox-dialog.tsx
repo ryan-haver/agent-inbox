@@ -176,18 +176,24 @@ export function AddAgentInboxDialog({
       };
 
       logger.log("Adding inbox:", newInbox);
-      addAgentInbox(newInbox);
       
-      // Also sync with server storage if enabled
+      // Sync with server storage FIRST if enabled, then add to localStorage
       if (serverEnabled) {
         try {
           const updatedInboxes = [...(config.inboxes || []), newInbox];
           await updateConfig({ inboxes: updatedInboxes });
           logger.log("Inbox synced to server storage");
+          
+          // Now add to localStorage (will be overwritten by server on next sync anyway)
+          addAgentInbox(newInbox);
         } catch (error) {
           logger.error("Failed to sync inbox to server storage:", error);
-          // Don't fail the operation if server sync fails
+          // Fall back to localStorage only
+          addAgentInbox(newInbox);
         }
+      } else {
+        // Browser-only mode: just add to localStorage
+        addAgentInbox(newInbox);
       }
 
       toast({
