@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Settings, RefreshCw } from "lucide-react";
+import { Settings, RefreshCw, Cloud, HardDrive } from "lucide-react";
 import React from "react";
 import { PillButton } from "@/components/ui/pill-button";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import { forceInboxBackfill, isBackfillCompleted } from "../utils/backfill";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "../utils/logger";
 import { cn } from "@/lib/utils";
+import { usePersistentConfig } from "@/hooks/use-persistent-config";
 
 export function SettingsPopover() {
   const langchainApiKeyNotSet = React.useRef(true);
@@ -31,6 +32,9 @@ export function SettingsPopover() {
   const [isRunningBackfill, setIsRunningBackfill] = React.useState(false);
   const [backfillCompleted, setBackfillCompleted] = React.useState(true);
   const { toast } = useToast();
+  
+  // Persistent storage hook for server-side sync
+  const { config, serverEnabled, isLoading, updateConfig } = usePersistentConfig();
 
   React.useEffect(() => {
     setBackfillCompleted(isBackfillCompleted());
@@ -41,21 +45,39 @@ export function SettingsPopover() {
       }
       if (langchainApiKey) return;
 
-      const langchainApiKeyLS = getItem(LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY);
-      if (langchainApiKeyLS) {
+      // Try persistent config first (server storage), then fall back to localStorage
+      if (config.langsmithApiKey) {
         langchainApiKeyNotSet.current = false;
-        setLangchainApiKey(langchainApiKeyLS);
+        setLangchainApiKey(config.langsmithApiKey);
+      } else {
+        const langchainApiKeyLS = getItem(LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY);
+        if (langchainApiKeyLS) {
+          langchainApiKeyNotSet.current = false;
+          setLangchainApiKey(langchainApiKeyLS);
+          // Sync to persistent config if server storage is enabled
+          if (serverEnabled) {
+            updateConfig({ langsmithApiKey: langchainApiKeyLS });
+          }
+        }
       }
     } catch (e) {
       logger.error("Error getting/setting LangSmith API key", e);
     }
-  }, [langchainApiKey]);
+  }, [langchainApiKey, config.langsmithApiKey, serverEnabled, getItem, updateConfig]);
 
   const handleChangeLangChainApiKey = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setLangchainApiKey(e.target.value);
-    setItem(LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY, e.target.value);
+    const newKey = e.target.value;
+    setLangchainApiKey(newKey);
+    
+    // Save to localStorage (for backward compatibility)
+    setItem(LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY, newKey);
+    
+    // Also update persistent config if server storage is enabled
+    if (serverEnabled) {
+      updateConfig({ langsmithApiKey: newKey });
+    }
   };
 
   const handleRunBackfill = async () => {
@@ -125,6 +147,26 @@ export function SettingsPopover() {
             <p className="text-sm text-muted-foreground">
               Configuration settings for Agent Inbox
             </p>
+            {!isLoading && (
+              <div className={cn(
+                "flex items-center gap-2 text-xs px-2 py-1 rounded-md",
+                serverEnabled 
+                  ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" 
+                  : "bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400"
+              )}>
+                {serverEnabled ? (
+                  <>
+                    <Cloud className="h-3 w-3" />
+                    <span>Server storage enabled</span>
+                  </>
+                ) : (
+                  <>
+                    <HardDrive className="h-3 w-3" />
+                    <span>Browser storage only</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-start gap-4 w-full">
             <div className="flex flex-col items-start gap-2 w-full">
@@ -133,9 +175,10 @@ export function SettingsPopover() {
                   LangSmith API Key <span className="text-red-500">*</span>
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  This value is stored in your browser&apos;s local storage and
-                  is only used to authenticate requests sent to your LangGraph
-                  server.
+                  {serverEnabled 
+                    ? "Synced to server storage. Changes will be saved to /app/data/config.json and accessible from all devices."
+                    : "This value is stored in your browser's local storage and is only used to authenticate requests sent to your LangGraph server."
+                  }
                 </p>
               </div>
               <PasswordInput
