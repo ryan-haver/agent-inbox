@@ -34,7 +34,7 @@ import { AddAgentInboxDialog } from "../agent-inbox/components/add-agent-inbox-d
 import { useLocalStorage } from "../agent-inbox/hooks/use-local-storage";
 import { DropdownDialogMenu } from "../agent-inbox/components/dropdown-and-dialog";
 import { usePersistentConfig } from "@/hooks/use-persistent-config";
-import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AgentInbox } from "../agent-inbox/types";
@@ -56,7 +56,8 @@ function SortableInboxItem({ item, idx, changeAgentInbox, deleteAgentInbox }: So
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    // Hide the original completely when dragging (overlay shows it instead)
+    visibility: isDragging ? ('hidden' as const) : ('visible' as const),
   };
 
   const label = item.name || prettifyText(item.graphId);
@@ -119,6 +120,7 @@ export function AppSidebar() {
   const { config, updateConfig } = usePersistentConfig();
   const [langchainApiKey, setLangchainApiKey] = React.useState("");
   const { getItem, setItem } = useLocalStorage();
+  const [activeId, setActiveId] = React.useState<string | null>(null);
 
   // Phase 4A: Drag-and-drop sensors (requires mouse movement before dragging)
   const sensors = useSensors(
@@ -148,9 +150,16 @@ export function AppSidebar() {
     return [...ordered, ...newInboxes];
   }, [agentInboxes, config.preferences?.inboxOrder]);
 
+  // Phase 4A: Handle drag start event
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
   // Phase 4A: Handle drag end event
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    
+    setActiveId(null); // Clear active dragging state
 
     if (!over || active.id === over.id) {
       return; // No change
@@ -171,6 +180,9 @@ export function AppSidebar() {
       }
     });
   }
+
+  // Get the inbox being dragged for the overlay
+  const activeInbox = activeId ? orderedInboxes.find(i => i.id === activeId) : null;
 
   React.useEffect(() => {
     try {
@@ -211,6 +223,7 @@ export function AppSidebar() {
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
+                  onDragStart={handleDragStart}
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
@@ -227,6 +240,22 @@ export function AppSidebar() {
                       />
                     ))}
                   </SortableContext>
+                  <DragOverlay>
+                    {activeInbox ? (
+                      <div className="bg-white rounded-md shadow-lg p-2 opacity-90 cursor-grabbing">
+                        <div className="flex items-center gap-2">
+                          {isDeployedUrl(activeInbox.deploymentUrl) ? (
+                            <UploadCloud className="w-5 h-5 text-blue-500" />
+                          ) : (
+                            <House className="w-5 h-5 text-green-500" />
+                          )}
+                          <span className="font-medium text-gray-800">
+                            {activeInbox.name || prettifyText(activeInbox.graphId)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </DragOverlay>
                 </DndContext>
                 <AddAgentInboxDialog
                   hideTrigger={false}

@@ -172,6 +172,11 @@ export interface AgentInbox {
    */
   name?: string;
   /**
+   * URL-safe slug generated from the name, used in URL parameters.
+   * Falls back to UUID if not present (backward compatibility).
+   */
+  slug?: string;
+  /**
    * Whether or not the inbox is selected.
    */
   selected: boolean;

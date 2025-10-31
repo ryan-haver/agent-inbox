@@ -16,6 +16,7 @@ import { prettifyText } from "../utils";
 import { useThreadsContext } from "../contexts/ThreadContext";
 import React from "react";
 import { logger } from "../utils/logger";
+import { getInboxUrlIdentifier } from "@/lib/inbox-slug-utils";
 
 export function BreadCrumb({ className }: { className?: string }) {
   const { searchParams } = useQueryParams();
@@ -73,7 +74,7 @@ export function BreadCrumb({ className }: { className?: string }) {
     if (!selectedAgentInbox) {
       return "/";
     }
-    return `/?${AGENT_INBOX_PARAM}=${selectedAgentInbox.id}`;
+    return `/?${AGENT_INBOX_PARAM}=${getInboxUrlIdentifier(selectedAgentInbox)}`;
   };
 
   const constructInboxLink = () => {
