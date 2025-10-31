@@ -53,7 +53,7 @@ export function AddAgentInboxDialog({
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   
   // Persistent storage hook for server-side sync
-  const { config, serverEnabled, updateConfig } = usePersistentConfig();
+  const { config, serverEnabled, updateConfig, isLoading } = usePersistentConfig();
 
   const noInboxesFoundParam = searchParams.get(NO_INBOXES_FOUND_PARAM);
 
@@ -61,6 +61,12 @@ export function AddAgentInboxDialog({
   React.useEffect(() => {
     try {
       if (typeof window === "undefined") {
+        return;
+      }
+      
+      // Wait for initial server load to complete before checking inboxes
+      if (isLoading) {
+        logger.log("Waiting for server config to load...");
         return;
       }
       
@@ -78,7 +84,7 @@ export function AddAgentInboxDialog({
     } catch (e) {
       logger.error("Error getting/setting no inboxes found param", e);
     }
-  }, [noInboxesFoundParam, config.inboxes, updateQueryParams]);
+  }, [noInboxesFoundParam, config.inboxes, updateQueryParams, isLoading]);
 
   // Pre-populate form fields from server config defaults if available
   React.useEffect(() => {
