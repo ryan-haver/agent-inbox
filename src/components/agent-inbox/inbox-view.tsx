@@ -122,13 +122,8 @@ export function AgentInboxView<
     // Clear threads from state
     clearThreadData();
 
-    // Save filter preference to persistent config (Phase 4A)
-    updateConfig({
-      preferences: {
-        ...config.preferences,
-        lastSelectedFilter: inbox,
-      },
-    });
+    // Note: We don't save filter changes here - use Settings for global default
+    // Or use per-inbox settings for inbox-specific defaults
 
     // Update query params
     updateQueryParams(
