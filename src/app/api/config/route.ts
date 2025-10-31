@@ -34,7 +34,7 @@ export async function GET() {
     }
 
     // Try to load existing configuration
-    const config = await loadConfig();
+    let config = await loadConfig();
     
     if (config) {
       return NextResponse.json({
@@ -43,13 +43,22 @@ export async function GET() {
       });
     }
 
-    // No configuration exists yet, return defaults from environment
+    // No configuration exists yet, initialize with defaults from environment
     const envDefaults = getEnvDefaultConfig();
+    const initialConfig: StoredConfiguration = {
+      inboxes: envDefaults.inboxes || [],
+      langsmithApiKey: envDefaults.langsmithApiKey,
+      preferences: envDefaults.preferences || {},
+      version: '1.0.0',
+      lastUpdated: new Date().toISOString(),
+    };
+    
+    // Save the initial config so it's not created multiple times
+    config = await saveConfig(initialConfig);
     
     return NextResponse.json({
       enabled: true,
-      config: null,
-      defaults: envDefaults,
+      config: config || initialConfig,
     });
   } catch (error) {
     console.error('[API /api/config GET] Error:', error);

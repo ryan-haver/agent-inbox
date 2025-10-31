@@ -185,19 +185,7 @@ export function usePersistentConfig(): UsePersistentConfigReturn {
         return true;
       }
       
-      if (data.defaults) {
-        // Server has defaults from environment, merge with local config
-        console.log('[Persistent Config] Merging server defaults');
-        const mergedConfig: PersistentConfig = {
-          ...config,
-          ...data.defaults,
-          inboxes: [...(data.defaults.inboxes || []), ...config.inboxes],
-        };
-        setConfig(mergedConfig);
-        saveToLocalStorage(mergedConfig);
-        return true;
-      }
-      
+      // No config available
       return false;
     } catch (error) {
       console.error('[Persistent Config] Error loading from server:', error);
@@ -281,15 +269,8 @@ export function usePersistentConfig(): UsePersistentConfigReturn {
         setServerEnabled(enabled);
         
         if (enabled && !hasInitialSynced.current) {
-          // First sync: try to load from server
-          const loaded = await loadFromServer();
-          
-          if (!loaded && config.inboxes.length > 0) {
-            // Server has no config but we have local data: push to server
-            console.log('[Persistent Config] Pushing local config to server');
-            await saveToServer();
-          }
-          
+          // First sync: load from server (server is source of truth)
+          await loadFromServer();
           hasInitialSynced.current = true;
         }
       } catch (error) {

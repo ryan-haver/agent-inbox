@@ -15,6 +15,7 @@ import { AgentInbox } from "../types";
 import { useRouter } from "next/navigation";
 import { logger } from "../utils/logger";
 import { runInboxBackfill } from "../utils/backfill";
+import { usePersistentConfig } from "@/hooks/use-persistent-config";
 
 /**
  * Hook for managing agent inboxes
@@ -35,6 +36,9 @@ export function useInboxes() {
   const { toast } = useToast();
   const [agentInboxes, setAgentInboxes] = useState<AgentInbox[]>([]);
   const initialLoadComplete = useRef(false);
+  
+  // Get persistent config to check for server-side inboxes
+  const { config, serverEnabled, isLoading } = usePersistentConfig();
 
   /**
    * Run backfill and load initial inboxes on mount
@@ -43,8 +47,25 @@ export function useInboxes() {
     if (typeof window === "undefined") {
       return;
     }
+    
+    // Wait for persistent config to load before initializing inboxes
+    if (isLoading) {
+      logger.log("Waiting for persistent config to load before initializing inboxes...");
+      return;
+    }
+    
     const initializeInboxes = async () => {
       try {
+        // Check if there are inboxes from server config first
+        if (serverEnabled && config.inboxes && config.inboxes.length > 0) {
+          logger.log("Found inboxes in server config, using those:", config.inboxes);
+          // Sync server inboxes to localStorage for backward compatibility
+          setItem(AGENT_INBOXES_LOCAL_STORAGE_KEY, JSON.stringify(config.inboxes));
+          setAgentInboxes(config.inboxes);
+          getAgentInboxes(config.inboxes);
+          return;
+        }
+        
         // Run the backfill process first
         const backfillResult = await runInboxBackfill();
         if (backfillResult.success) {
@@ -71,7 +92,7 @@ export function useInboxes() {
     initializeInboxes();
     // Run only once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoading, serverEnabled]); // Added dependencies
 
   /**
    * Load agent inboxes from local storage and set up proper selection state
