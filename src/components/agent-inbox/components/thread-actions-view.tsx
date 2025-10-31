@@ -533,6 +533,7 @@ export function ThreadActionsView<
 
       {/* Actions */}
       <InboxItemInput
+        threadId={threadData.thread.thread_id}
         acceptAllowed={acceptAllowed}
         hasEdited={actions?.hasEdited ?? false}
         hasAddedResponse={actions?.hasAddedResponse ?? false}

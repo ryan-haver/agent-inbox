@@ -142,6 +142,11 @@ export type ThreadData<T extends Record<string, any> = Record<string, any>> =
 export type ThreadStatusWithAll = EnhancedThreadStatus | "all";
 
 /**
+ * Inbox view type for default view settings.
+ */
+export type InboxView = 'interrupted' | 'pending' | 'all';
+
+/**
  * Type of submission for human responses.
  */
 export type SubmitType = "accept" | "response" | "edit";

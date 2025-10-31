@@ -10,6 +10,7 @@ import { InboxButtons } from "./components/inbox-buttons";
 import { BackfillBanner } from "./components/backfill-banner";
 import { forceInboxBackfill } from "./utils/backfill";
 import { logger } from "./utils/logger";
+import { usePersistentConfig } from "@/hooks/use-persistent-config";
 
 interface AgentInboxViewProps<
   _ThreadValues extends Record<string, any> = Record<string, any>,
@@ -24,6 +25,7 @@ export function AgentInboxView<
   const { searchParams, updateQueryParams, getSearchParam } = useQueryParams();
   const { loading, threadData, agentInboxes, clearThreadData } =
     useThreadsContext<ThreadValues>();
+  const { config, updateConfig } = usePersistentConfig();
   const selectedInbox = (getSearchParam(INBOX_PARAM) ||
     "interrupted") as ThreadStatusWithAll;
   const scrollableContentRef = React.useRef<HTMLDivElement>(null);
@@ -119,6 +121,14 @@ export function AgentInboxView<
   const changeInbox = async (inbox: ThreadStatusWithAll) => {
     // Clear threads from state
     clearThreadData();
+
+    // Save filter preference to persistent config (Phase 4A)
+    updateConfig({
+      preferences: {
+        ...config.preferences,
+        lastSelectedFilter: inbox,
+      },
+    });
 
     // Update query params
     updateQueryParams(

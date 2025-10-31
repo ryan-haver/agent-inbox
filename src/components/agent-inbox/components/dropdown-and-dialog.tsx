@@ -1,8 +1,9 @@
 "use client";
 
-import { Trash2, MoreVertical, Pencil } from "lucide-react";
+import { Trash2, MoreVertical, Pencil, Settings } from "lucide-react";
 import React from "react";
 import { EditAgentInboxDialog } from "./edit-agent-inbox-dialog";
+import { InboxSettingsDialog } from "./inbox-settings-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ export function DropdownDialogMenu({
 }) {
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
 
   // Handle dialog open/close and ensure dropdown closes when dialog opens
   const handleDialogOpenChange = (open: boolean) => {
@@ -52,6 +54,17 @@ export function DropdownDialogMenu({
             </DropdownMenuItem>
           </DialogTrigger>
           <DropdownMenuItem
+            className="cursor-pointer flex items-center gap-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSettingsOpen(true);
+              setDropdownOpen(false);
+            }}
+          >
+            <Settings className="w-4 h-4" />
+            <span>Inbox Settings</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
             className="cursor-pointer text-red-500 focus:text-red-500"
             onClick={(e) => {
               e.stopPropagation();
@@ -67,6 +80,11 @@ export function DropdownDialogMenu({
       </DropdownMenu>
 
       <EditAgentInboxDialog agentInbox={item} />
+      <InboxSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        inbox={item}
+      />
     </Dialog>
   );
 }

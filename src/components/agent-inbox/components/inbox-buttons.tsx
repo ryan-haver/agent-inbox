@@ -40,12 +40,16 @@ function InboxButton({
   selectedInbox: string;
   onClick: () => void;
 }) {
+  const isSelected = selectedInbox === label.toLowerCase();
+  
   return (
     <Button
       onClick={onClick}
       className={cn(
-        "text-[16px] leading-6 font-medium",
-        selectedInbox === label.toLowerCase() ? "text-black" : "text-gray-500"
+        "text-[16px] leading-6 font-medium transition-colors",
+        isSelected
+          ? "text-black bg-gray-100 hover:bg-gray-200" // Active: gray background
+          : "text-gray-500 hover:bg-gray-50" // Inactive: subtle hover
       )}
       variant="ghost"
     >

@@ -12,13 +12,19 @@ import { ThreadView } from "./thread-view";
 import { useScrollPosition } from "./hooks/use-scroll-position";
 import { usePathname, useSearchParams } from "next/navigation";
 import { logger } from "./utils/logger";
+import { usePersistentConfig } from "@/hooks/use-persistent-config";
 
 export function AgentInbox<
   ThreadValues extends Record<string, any> = Record<string, any>,
 >() {
   const { searchParams, updateQueryParams, getSearchParam } = useQueryParams();
+  const { config, isLoading: configLoading } = usePersistentConfig();
+  
+  // Phase 4A: Initialize filter from saved preference or default to "interrupted"
   const [_selectedInbox, setSelectedInbox] =
-    React.useState<ThreadStatusWithAll>("interrupted");
+    React.useState<ThreadStatusWithAll>(
+      (config.preferences?.lastSelectedFilter as ThreadStatusWithAll) || "interrupted"
+    );
   const { saveScrollPosition, restoreScrollPosition } = useScrollPosition();
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -103,16 +109,19 @@ export function AgentInbox<
 
   React.useEffect(() => {
     try {
-      if (typeof window === "undefined") return;
+      if (typeof window === "undefined" || configLoading) return;
 
       const currentInbox = getSearchParam(INBOX_PARAM) as
         | ThreadStatusWithAll
         | undefined;
       if (!currentInbox) {
+        // Phase 4A: Use saved filter preference or default to "interrupted"
+        const defaultInbox = (config.preferences?.lastSelectedFilter as ThreadStatusWithAll) || "interrupted";
+        
         // Set default inbox if none selected, and ensure offset, limit, and inbox (tab) are set
         updateQueryParams(
           [INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM],
-          ["interrupted", "0", "10"]
+          [defaultInbox, "0", "10"]
         );
       } else {
         setSelectedInbox(currentInbox);
@@ -143,7 +152,7 @@ export function AgentInbox<
     } catch (e) {
       logger.error("Error updating query params & setting inbox", e);
     }
-  }, [searchParams]);
+  }, [searchParams, configLoading]);
 
   if (isStateViewOpen) {
     return <ThreadView threadId={selectedThreadIdParam} />;

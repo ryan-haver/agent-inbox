@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { logger } from "../utils/logger";
 import { runInboxBackfill } from "../utils/backfill";
 import { usePersistentConfig } from "@/hooks/use-persistent-config";
+import { getInboxSetting } from "@/lib/inbox-settings-utils";
 
 /**
  * Hook for managing agent inboxes
@@ -162,9 +163,11 @@ export function useInboxes() {
         const selectedInbox = currentInboxes.find((inbox) => inbox.selected);
         if (!selectedInbox) {
           currentInboxes[0].selected = true;
+          // Phase 4A: Don't override existing inbox parameter
+          const currentInboxParam = getSearchParam(INBOX_PARAM);
           updateQueryParams(
             [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
-            [currentInboxes[0].id, "0", "10", "interrupted"]
+            [currentInboxes[0].id, "0", "10", currentInboxParam || "interrupted"]
           );
           setAgentInboxes(currentInboxes);
           setItem(
@@ -172,9 +175,11 @@ export function useInboxes() {
             JSON.stringify(currentInboxes)
           );
         } else {
+          // Phase 4A: Don't override existing inbox parameter
+          const currentInboxParam = getSearchParam(INBOX_PARAM);
           updateQueryParams(
             [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
-            [selectedInbox.id, "0", "10", "interrupted"]
+            [selectedInbox.id, "0", "10", currentInboxParam || "interrupted"]
           );
           setAgentInboxes(currentInboxes);
           setItem(
@@ -254,10 +259,19 @@ export function useInboxes() {
       if (!agentInboxesStr || agentInboxesStr === "[]") {
         setAgentInboxes([newInbox]);
         setItem(AGENT_INBOXES_LOCAL_STORAGE_KEY, JSON.stringify([newInbox]));
+        
+        // Get the default view for this new inbox
+        const defaultView = getInboxSetting(
+          newInbox.id,
+          'defaultView',
+          'interrupted',
+          config
+        );
+        
         // Set agent inbox, offset, and limit
         updateQueryParams(
           [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
-          [newInbox.id, "0", "10", "interrupted"]
+          [newInbox.id, "0", "10", defaultView]
         );
         return;
       }
@@ -297,7 +311,7 @@ export function useInboxes() {
         });
       }
     },
-    [getItem, setItem, updateQueryParams, router]
+    [getItem, setItem, updateQueryParams, router, config]
   );
 
   /**
@@ -405,26 +419,28 @@ export function useInboxes() {
         }
       }
 
-      // Update URL parameters
-      if (!replaceAll) {
-        // Set agent inbox, offset, limit, and inbox param
-        updateQueryParams(
-          [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
-          [id, "0", "10", "interrupted"]
-        );
-      } else {
-        const url = new URL(window.location.href);
-        const newParams = new URLSearchParams({
-          [AGENT_INBOX_PARAM]: id,
-          [OFFSET_PARAM]: "0",
-          [LIMIT_PARAM]: "10",
-          [INBOX_PARAM]: "interrupted",
-        });
-        const newUrl = url.pathname + "?" + newParams.toString();
-        window.location.href = newUrl;
-      }
+      // Get the default view for this inbox (per-inbox override > global > app default)
+      const defaultView = getInboxSetting(
+        id,
+        'defaultView',
+        'interrupted', // app default
+        config
+      );
+
+      // Update URL parameters using client-side routing (no page reload)
+      const url = new URL(window.location.href);
+      const newParams = new URLSearchParams({
+        [AGENT_INBOX_PARAM]: id,
+        [OFFSET_PARAM]: "0",
+        [LIMIT_PARAM]: "10",
+        [INBOX_PARAM]: defaultView, // Use computed default view
+      });
+      const newUrl = url.pathname + "?" + newParams.toString();
+      
+      // Use Next.js router for smooth client-side navigation (no flash)
+      router.push(newUrl, { scroll: false });
     },
-    [getItem, setItem, updateQueryParams, router]
+    [getItem, setItem, router, config]
   );
 
   /**

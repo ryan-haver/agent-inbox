@@ -33,12 +33,144 @@ import {
 import { AddAgentInboxDialog } from "../agent-inbox/components/add-agent-inbox-dialog";
 import { useLocalStorage } from "../agent-inbox/hooks/use-local-storage";
 import { DropdownDialogMenu } from "../agent-inbox/components/dropdown-and-dialog";
+import { usePersistentConfig } from "@/hooks/use-persistent-config";
+import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { AgentInbox } from "../agent-inbox/types";
+
+/**
+ * Sortable Inbox Item Component
+ * Phase 4A: Inbox Ordering - Drag-and-drop support
+ */
+interface SortableInboxItemProps {
+  item: AgentInbox;
+  idx: number;
+  changeAgentInbox: (id: string, selected: boolean) => void;
+  deleteAgentInbox: (id: string) => void;
+}
+
+function SortableInboxItem({ item, idx, changeAgentInbox, deleteAgentInbox }: SortableInboxItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const label = item.name || prettifyText(item.graphId);
+  const isDeployed = isDeployedUrl(item.deploymentUrl);
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-2">
+      <SidebarMenuItem
+        key={`graph-id-${item.graphId}-${idx}`}
+        className={cn(
+          "flex items-center w-full gap-2",
+          item.selected ? "bg-gray-100 rounded-md" : ""
+        )}
+        {...attributes}
+        {...listeners}
+      >
+        <TooltipProvider>
+          <Tooltip delayDuration={200}>
+            <TooltipTrigger asChild>
+              <SidebarMenuButton
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation(); // Prevent drag when clicking
+                  changeAgentInbox(item.id, true);
+                }}
+                className="flex-1"
+              >
+                {isDeployed ? (
+                  <UploadCloud className="w-5 h-5 text-blue-500" />
+                ) : (
+                  <House className="w-5 h-5 text-green-500" />
+                )}
+                <span
+                  className={cn(
+                    "truncate min-w-0 font-medium",
+                    item.selected ? "text-black" : "text-gray-600"
+                  )}
+                >
+                  {label}
+                </span>
+              </SidebarMenuButton>
+            </TooltipTrigger>
+            <TooltipContent>
+              {label} - {isDeployed ? "Deployed" : "Local"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <DropdownDialogMenu
+          item={item}
+          deleteAgentInbox={deleteAgentInbox}
+        />
+      </SidebarMenuItem>
+    </div>
+  );
+}
 
 export function AppSidebar() {
   const { agentInboxes, changeAgentInbox, deleteAgentInbox } =
     useThreadsContext();
+  const { config, updateConfig } = usePersistentConfig();
   const [langchainApiKey, setLangchainApiKey] = React.useState("");
   const { getItem, setItem } = useLocalStorage();
+
+  // Phase 4A: Drag-and-drop sensors (requires mouse movement before dragging)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before drag starts (prevents accidental drags on click)
+      },
+    })
+  );
+
+  // Phase 4A: Apply saved inbox ordering
+  const orderedInboxes = React.useMemo(() => {
+    const inboxOrder = config.preferences?.inboxOrder || [];
+    
+    if (!inboxOrder.length) {
+      return agentInboxes; // No saved order, use default
+    }
+
+    // Sort inboxes according to saved order
+    const ordered = inboxOrder
+      .map(id => agentInboxes.find(inbox => inbox.id === id))
+      .filter(Boolean) as AgentInbox[];
+
+    // Add any new inboxes not in saved order (append to end)
+    const newInboxes = agentInboxes.filter(inbox => !inboxOrder.includes(inbox.id));
+    
+    return [...ordered, ...newInboxes];
+  }, [agentInboxes, config.preferences?.inboxOrder]);
+
+  // Phase 4A: Handle drag end event
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return; // No change
+    }
+
+    const oldIndex = orderedInboxes.findIndex(i => i.id === active.id);
+    const newIndex = orderedInboxes.findIndex(i => i.id === over.id);
+
+    // Reorder array
+    const reordered = arrayMove(orderedInboxes, oldIndex, newIndex);
+    const newInboxOrder = reordered.map(i => i.id);
+
+    // Save new order to persistent config
+    updateConfig({
+      preferences: {
+        ...config.preferences,
+        inboxOrder: newInboxOrder
+      }
+    });
+  }
 
   React.useEffect(() => {
     try {
@@ -75,51 +207,27 @@ export function AppSidebar() {
           <SidebarGroupContent className="h-full">
             <SidebarMenu className="flex flex-col gap-2 justify-between h-full">
               <div className="flex flex-col gap-2 pl-7">
-                {agentInboxes.map((item, idx) => {
-                  const label = item.name || prettifyText(item.graphId);
-                  const isDeployed = isDeployedUrl(item.deploymentUrl);
-                  return (
-                    <SidebarMenuItem
-                      key={`graph-id-${item.graphId}-${idx}`}
-                      className={cn(
-                        "flex items-center w-full",
-                        item.selected ? "bg-gray-100 rounded-md" : ""
-                      )}
-                    >
-                      <TooltipProvider>
-                        <Tooltip delayDuration={200}>
-                          <TooltipTrigger asChild>
-                            <SidebarMenuButton
-                              onClick={() => changeAgentInbox(item.id, true)}
-                            >
-                              {isDeployed ? (
-                                <UploadCloud className="w-5 h-5 text-blue-500" />
-                              ) : (
-                                <House className="w-5 h-5 text-green-500" />
-                              )}
-                              <span
-                                className={cn(
-                                  "truncate min-w-0 font-medium",
-                                  item.selected ? "text-black" : "text-gray-600"
-                                )}
-                              >
-                                {label}
-                              </span>
-                            </SidebarMenuButton>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {label} - {isDeployed ? "Deployed" : "Local"}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      <DropdownDialogMenu
+                {/* Phase 4A: Drag-and-drop inbox ordering */}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={orderedInboxes.map(i => i.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {orderedInboxes.map((item, idx) => (
+                      <SortableInboxItem
+                        key={item.id}
                         item={item}
+                        idx={idx}
+                        changeAgentInbox={changeAgentInbox}
                         deleteAgentInbox={deleteAgentInbox}
                       />
-                    </SidebarMenuItem>
-                  );
-                })}
+                    ))}
+                  </SortableContext>
+                </DndContext>
                 <AddAgentInboxDialog
                   hideTrigger={false}
                   langchainApiKey={langchainApiKey}

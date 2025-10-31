@@ -21,6 +21,7 @@ const STORAGE_KEYS = {
   INBOXES: 'agentInboxes',
   LANGSMITH_API_KEY: 'langsmithApiKey',
   PREFERENCES: 'agentInboxPreferences',
+  DRAFTS: 'agentInboxDrafts', // Phase 4A: Draft auto-save
   LAST_SYNC: 'lastServerSync',
 } as const;
 
@@ -40,6 +41,35 @@ export interface PersistentConfig {
   preferences?: {
     theme?: string;
     defaultInbox?: string;
+    lastSelectedFilter?: string; // Phase 4A: Filter persistence (interrupted, idle, error, all)
+    inboxOrder?: string[]; // Phase 4A: Inbox ordering (array of inbox IDs)
+    
+    // Phase 4A+: Global inbox behavior defaults (scalable structure)
+    inboxDefaults?: {
+      defaultView?: 'interrupted' | 'pending' | 'all';
+      // Future: sortOrder, autoRefresh, refreshInterval, etc.
+    };
+    
+    // Phase 4A+: Per-inbox setting overrides (scalable structure)
+    inboxSettings?: {
+      [inboxId: string]: {
+        defaultView?: 'interrupted' | 'pending' | 'all';
+        // Future: inbox-specific sortOrder, notificationsEnabled, etc.
+      };
+    };
+    
+    notifications?: { // Phase 4A: Notification settings (UI only, functionality in Phase 5)
+      enabled: boolean;
+      sound: boolean;
+      desktop: boolean;
+      emailOnInterrupt?: boolean; // Future: Phase 5
+    };
+  };
+  drafts?: { // Phase 4A: Draft auto-save
+    [threadId: string]: {
+      content: string;
+      lastSaved: string;
+    };
   };
 }
 
@@ -60,15 +90,22 @@ export interface UsePersistentConfigReturn {
  * Load configuration from browser localStorage
  */
 function loadFromLocalStorage(): PersistentConfig {
+  // Check if we're in a browser environment (not SSR)
+  if (typeof window === 'undefined') {
+    return { inboxes: [] };
+  }
+  
   try {
     const inboxesStr = localStorage.getItem(STORAGE_KEYS.INBOXES);
     const apiKey = localStorage.getItem(STORAGE_KEYS.LANGSMITH_API_KEY);
     const prefsStr = localStorage.getItem(STORAGE_KEYS.PREFERENCES);
+    const draftsStr = localStorage.getItem(STORAGE_KEYS.DRAFTS);
     
     return {
       inboxes: inboxesStr ? JSON.parse(inboxesStr) : [],
       langsmithApiKey: apiKey || undefined,
       preferences: prefsStr ? JSON.parse(prefsStr) : {},
+      drafts: draftsStr ? JSON.parse(draftsStr) : {},
     };
   } catch (error) {
     console.error('[Persistent Config] Error loading from localStorage:', error);
@@ -80,6 +117,11 @@ function loadFromLocalStorage(): PersistentConfig {
  * Save configuration to browser localStorage
  */
 function saveToLocalStorage(config: PersistentConfig): void {
+  // Check if we're in a browser environment (not SSR)
+  if (typeof window === 'undefined') {
+    return;
+  }
+  
   try {
     localStorage.setItem(STORAGE_KEYS.INBOXES, JSON.stringify(config.inboxes));
     
@@ -93,6 +135,12 @@ function saveToLocalStorage(config: PersistentConfig): void {
       localStorage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(config.preferences));
     } else {
       localStorage.removeItem(STORAGE_KEYS.PREFERENCES);
+    }
+    
+    if (config.drafts) {
+      localStorage.setItem(STORAGE_KEYS.DRAFTS, JSON.stringify(config.drafts));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.DRAFTS);
     }
     
     console.log('[Persistent Config] Saved to localStorage');

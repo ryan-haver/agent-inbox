@@ -5,7 +5,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Settings, RefreshCw, Cloud, HardDrive } from "lucide-react";
+import { Settings, RefreshCw, Cloud, HardDrive, Bell, Inbox } from "lucide-react";
 import React from "react";
 import { PillButton } from "@/components/ui/pill-button";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { useQueryParams } from "../hooks/use-query-params";
 import { ThreadStatusWithAll } from "../types";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { forceInboxBackfill, isBackfillCompleted } from "../utils/backfill";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "../utils/logger";
@@ -190,6 +191,144 @@ export function SettingsPopover() {
                 onChange={handleChangeLangChainApiKey}
               />
             </div>
+            
+            {/* Phase 4A: Notification Settings */}
+            <div className="flex flex-col items-start gap-2 w-full border-t pt-4">
+              <div className="flex flex-col gap-1 w-full items-start">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  <Label>Notifications</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Configure notification preferences. Full notification functionality will be implemented in a future update.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 w-full pl-6">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="notifications-enabled"
+                    checked={config.preferences?.notifications?.enabled ?? true}
+                    onCheckedChange={(checked) => {
+                      updateConfig({
+                        preferences: {
+                          ...config.preferences,
+                          notifications: {
+                            enabled: checked === true,
+                            sound: config.preferences?.notifications?.sound ?? true,
+                            desktop: config.preferences?.notifications?.desktop ?? true,
+                          },
+                        },
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="notifications-enabled"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    Enable notifications
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="notifications-sound"
+                    checked={config.preferences?.notifications?.sound ?? true}
+                    disabled={!(config.preferences?.notifications?.enabled ?? true)}
+                    onCheckedChange={(checked) => {
+                      updateConfig({
+                        preferences: {
+                          ...config.preferences,
+                          notifications: {
+                            ...config.preferences?.notifications,
+                            enabled: config.preferences?.notifications?.enabled ?? true,
+                            sound: checked === true,
+                            desktop: config.preferences?.notifications?.desktop ?? true,
+                          },
+                        },
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="notifications-sound"
+                    className={cn(
+                      "text-sm leading-none cursor-pointer",
+                      !(config.preferences?.notifications?.enabled ?? true) && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    Play sound
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="notifications-desktop"
+                    checked={config.preferences?.notifications?.desktop ?? true}
+                    disabled={!(config.preferences?.notifications?.enabled ?? true)}
+                    onCheckedChange={(checked) => {
+                      updateConfig({
+                        preferences: {
+                          ...config.preferences,
+                          notifications: {
+                            ...config.preferences?.notifications,
+                            enabled: config.preferences?.notifications?.enabled ?? true,
+                            sound: config.preferences?.notifications?.sound ?? true,
+                            desktop: checked === true,
+                          },
+                        },
+                      });
+                    }}
+                  />
+                  <label
+                    htmlFor="notifications-desktop"
+                    className={cn(
+                      "text-sm leading-none cursor-pointer",
+                      !(config.preferences?.notifications?.enabled ?? true) && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    Desktop notifications
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Inbox Defaults Section */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center gap-2">
+                <Inbox className="w-4 h-4 text-gray-700" />
+                <h3 className="text-sm font-semibold text-gray-900">Inbox Defaults</h3>
+              </div>
+              
+              <div className="space-y-2 pl-6">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="default-view" className="text-sm text-gray-700">
+                    Default view when switching inboxes
+                  </label>
+                  <select
+                    id="default-view"
+                    value={config.preferences?.inboxDefaults?.defaultView || 'interrupted'}
+                    onChange={(e) => {
+                      updateConfig({
+                        preferences: {
+                          ...config.preferences,
+                          inboxDefaults: {
+                            ...config.preferences?.inboxDefaults,
+                            defaultView: e.target.value as 'interrupted' | 'pending' | 'all',
+                          },
+                        },
+                      });
+                    }}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="interrupted">Interrupted</option>
+                    <option value="pending">Pending</option>
+                    <option value="all">All</option>
+                  </select>
+                </div>
+                
+                <p className="text-xs text-gray-500">
+                  Choose which inbox view to show by default. Can be overridden per inbox.
+                </p>
+              </div>
+            </div>
+
             {!backfillCompleted && (
               <div className="flex flex-col items-start gap-2 w-full border-t pt-4">
                 <div className="flex flex-col gap-1 w-full items-start">

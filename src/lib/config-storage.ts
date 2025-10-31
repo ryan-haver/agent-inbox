@@ -33,6 +33,35 @@ export interface StoredConfiguration {
   preferences?: {
     theme?: string;
     defaultInbox?: string;
+    lastSelectedFilter?: string; // Phase 4A: Filter persistence
+    inboxOrder?: string[]; // Phase 4A: Inbox ordering
+    
+    // Phase 4A+: Global inbox behavior defaults (scalable structure)
+    inboxDefaults?: {
+      defaultView?: 'interrupted' | 'pending' | 'all';
+      // Future: sortOrder, autoRefresh, refreshInterval, etc.
+    };
+    
+    // Phase 4A+: Per-inbox setting overrides (scalable structure)
+    inboxSettings?: {
+      [inboxId: string]: {
+        defaultView?: 'interrupted' | 'pending' | 'all';
+        // Future: inbox-specific sortOrder, notificationsEnabled, etc.
+      };
+    };
+    
+    notifications?: { // Phase 4A: Notification settings (UI only, functionality in Phase 5)
+      enabled: boolean;
+      sound: boolean;
+      desktop: boolean;
+      emailOnInterrupt?: boolean; // Future: Phase 5
+    };
+  };
+  drafts?: { // Phase 4A: Draft auto-save
+    [threadId: string]: {
+      content: string;
+      lastSaved: string;
+    };
   };
 }
 

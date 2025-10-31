@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { CircleX, LoaderCircle, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "../utils/logger";
+import { useDraftStorage } from "@/hooks/use-draft-storage";
 
 function ResetButton({ handleReset }: { handleReset: () => void }) {
   return (
@@ -57,6 +58,7 @@ function ArgsRenderer({ args }: { args: Record<string, any> }) {
 }
 
 interface InboxItemInputProps {
+  threadId: string; // Phase 4A: Draft auto-save
   interruptValue: HumanInterrupt;
   humanResponse: HumanResponseWithEdits[];
   supportsMultipleMethods: boolean;
@@ -84,6 +86,7 @@ interface InboxItemInputProps {
 }
 
 function ResponseComponent({
+  threadId,
   humanResponse,
   streaming,
   showArgsInResponse,
@@ -91,6 +94,7 @@ function ResponseComponent({
   onResponseChange,
   handleSubmit,
 }: {
+  threadId: string;
   humanResponse: HumanResponseWithEdits[];
   streaming: boolean;
   showArgsInResponse: boolean;
@@ -100,7 +104,18 @@ function ResponseComponent({
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent
   ) => Promise<void>;
 }) {
+  const { loadDraft, saveDraft, discardDraft, hasDraft, getLastSaved } = useDraftStorage();
   const res = humanResponse.find((r) => r.type === "response");
+  
+  // Load draft on mount
+  React.useEffect(() => {
+    const draft = loadDraft(threadId);
+    if (draft && res && typeof res.args === "string" && !res.args) {
+      // Only load draft if current response is empty
+      onResponseChange(draft, res);
+    }
+  }, [threadId, loadDraft]); // Only run when threadId changes
+
   if (!res || typeof res.args !== "string") {
     return null;
   }
@@ -108,9 +123,31 @@ function ResponseComponent({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
-      handleSubmit(e);
+      handleSubmitAndDiscardDraft(e);
     }
   };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    onResponseChange(newValue, res);
+    saveDraft(threadId, newValue); // Auto-save with 5-second debounce
+  };
+
+  const handleReset = () => {
+    onResponseChange("", res);
+    discardDraft(threadId);
+  };
+
+  const handleSubmitAndDiscardDraft = async (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent
+  ) => {
+    await handleSubmit(e);
+    // Discard draft after successful submission
+    discardDraft(threadId);
+  };
+
+  const lastSaved = getLastSaved(threadId);
+  const showDraftIndicator = hasDraft(threadId) && lastSaved;
 
   return (
     <div className="flex flex-col gap-4 p-6 items-start w-full rounded-xl border-[1px] border-gray-300">
@@ -118,11 +155,7 @@ function ResponseComponent({
         <p className="font-semibold text-black text-base">
           Respond to assistant
         </p>
-        <ResetButton
-          handleReset={() => {
-            onResponseChange("", res);
-          }}
-        />
+        <ResetButton handleReset={handleReset} />
       </div>
 
       {showArgsInResponse && interruptValue?.action_request?.args && (
@@ -130,11 +163,18 @@ function ResponseComponent({
       )}
 
       <div className="flex flex-col gap-[6px] items-start w-full">
-        <p className="text-sm min-w-fit font-medium">Response</p>
+        <div className="flex items-center justify-between w-full">
+          <p className="text-sm min-w-fit font-medium">Response</p>
+          {showDraftIndicator && (
+            <span className="text-xs text-gray-500">
+              Draft saved at {lastSaved.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
         <Textarea
           disabled={streaming}
           value={res.args}
-          onChange={(e) => onResponseChange(e.target.value, res)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
           rows={4}
           placeholder="Your response here..."
@@ -142,7 +182,7 @@ function ResponseComponent({
       </div>
 
       <div className="flex items-center justify-end w-full gap-2">
-        <Button variant="brand" disabled={streaming} onClick={handleSubmit}>
+        <Button variant="brand" disabled={streaming} onClick={handleSubmitAndDiscardDraft}>
           Send Response
         </Button>
       </div>
@@ -314,6 +354,7 @@ function EditAndOrAcceptComponent({
 const EditAndOrAccept = React.memo(EditAndOrAcceptComponent);
 
 export function InboxItemInput({
+  threadId,
   interruptValue,
   humanResponse,
   streaming,
@@ -521,6 +562,7 @@ export function InboxItemInput({
         ) : null}
         {isResponseAllowed && (
           <Response
+            threadId={threadId}
             humanResponse={humanResponse}
             streaming={streaming}
             showArgsInResponse={showArgsInResponse}
