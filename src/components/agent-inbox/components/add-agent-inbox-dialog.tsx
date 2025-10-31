@@ -177,23 +177,33 @@ export function AddAgentInboxDialog({
 
       logger.log("Adding inbox:", newInbox);
       
-      // Sync with server storage FIRST if enabled, then add to localStorage
+      // Add to localStorage first (immediate update)
+      addAgentInbox(newInbox);
+      
+      // If server storage enabled, sync to server before reload
       if (serverEnabled) {
         try {
           const updatedInboxes = [...(config.inboxes || []), newInbox];
-          await updateConfig({ inboxes: updatedInboxes });
-          logger.log("Inbox synced to server storage");
           
-          // Now add to localStorage (will be overwritten by server on next sync anyway)
-          addAgentInbox(newInbox);
+          // Update config state
+          updateConfig({ inboxes: updatedInboxes });
+          
+          // Manually save to server and WAIT for completion
+          const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...config, inboxes: updatedInboxes }),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Server save failed: ${response.status}`);
+          }
+          
+          logger.log("Inbox synced to server storage");
         } catch (error) {
           logger.error("Failed to sync inbox to server storage:", error);
-          // Fall back to localStorage only
-          addAgentInbox(newInbox);
+          // Continue anyway - localStorage has the inbox
         }
-      } else {
-        // Browser-only mode: just add to localStorage
-        addAgentInbox(newInbox);
       }
 
       toast({
