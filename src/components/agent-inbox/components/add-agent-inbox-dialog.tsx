@@ -25,6 +25,7 @@ import { useLocalStorage } from "../hooks/use-local-storage";
 import { LoaderCircle } from "lucide-react";
 import { logger } from "../utils/logger";
 import { AgentInbox } from "../types";
+import { usePersistentConfig } from "@/hooks/use-persistent-config";
 
 export function AddAgentInboxDialog({
   hideTrigger,
@@ -50,21 +51,50 @@ export function AddAgentInboxDialog({
   const [name, setName] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  
+  // Persistent storage hook for server-side sync
+  const { config, serverEnabled, updateConfig } = usePersistentConfig();
 
   const noInboxesFoundParam = searchParams.get(NO_INBOXES_FOUND_PARAM);
 
+  // Check if there are already inboxes from server config (pre-configured during deployment)
   React.useEffect(() => {
     try {
       if (typeof window === "undefined") {
         return;
       }
+      
+      // If there are already inboxes in the config (from server storage), 
+      // we don't need to show the welcome dialog
+      if (config.inboxes && config.inboxes.length > 0) {
+        logger.log("Found existing inboxes in server config, skipping welcome dialog");
+        updateQueryParams(NO_INBOXES_FOUND_PARAM);
+        return;
+      }
+      
       if (noInboxesFoundParam === "true") {
         setOpen(true);
       }
     } catch (e) {
       logger.error("Error getting/setting no inboxes found param", e);
     }
-  }, [noInboxesFoundParam]);
+  }, [noInboxesFoundParam, config.inboxes, updateQueryParams]);
+
+  // Pre-populate form fields from server config defaults if available
+  React.useEffect(() => {
+    if (config.inboxes && config.inboxes.length === 0) {
+      // Check if there are any default values from environment variables
+      // These would be in the initial config loaded from the server
+      const hasDefaults = graphId === "" && deploymentUrl === "" && name === "";
+      
+      if (hasDefaults && serverEnabled) {
+        logger.log("Checking for default inbox configuration from environment...");
+        // The server will return defaults in the initial config if env vars are set
+        // We don't auto-populate here since the server would have already created
+        // the inbox in config.inboxes if DEFAULT_INBOX_ENABLED=true
+      }
+    }
+  }, [config, graphId, deploymentUrl, name, serverEnabled]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -141,6 +171,18 @@ export function AddAgentInboxDialog({
 
       logger.log("Adding inbox:", newInbox);
       addAgentInbox(newInbox);
+      
+      // Also sync with server storage if enabled
+      if (serverEnabled) {
+        try {
+          const updatedInboxes = [...(config.inboxes || []), newInbox];
+          await updateConfig({ inboxes: updatedInboxes });
+          logger.log("Inbox synced to server storage");
+        } catch (error) {
+          logger.error("Failed to sync inbox to server storage:", error);
+          // Don't fail the operation if server sync fails
+        }
+      }
 
       toast({
         title: "Success",
