@@ -66,11 +66,19 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Create data directory for persistent storage (optional feature)
+# This directory will be used if USE_SERVER_STORAGE=true
+RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+
 # Set ownership to nextjs user
 RUN chown -R nextjs:nodejs /app
 
 # Switch to non-root user
 USER nextjs
+
+# Declare volume for persistent configuration storage
+# This is optional - container works without it (browser localStorage fallback)
+VOLUME ["/app/data"]
 
 # Expose port
 EXPOSE 3000

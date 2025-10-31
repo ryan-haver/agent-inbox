@@ -26,6 +26,36 @@ services:
       
       # Optional: Pre-configure LangSmith API key (can also be set in UI)
       # - NEXT_PUBLIC_LANGSMITH_API_KEY=
+      
+      # =========================================================================
+      # PERSISTENT STORAGE CONFIGURATION (Optional)
+      # =========================================================================
+      # Enable server-side configuration storage (default: false)
+      # When enabled, configuration syncs between browser and server
+      # Benefits: Multi-device sync, survives browser cache clear, backup/restore
+      # Requires: Volume mapping for /app/data (see volumes section below)
+      # - USE_SERVER_STORAGE=true
+      
+      # Optional: Custom configuration file path (default: /app/data/config.json)
+      # - CONFIG_FILE_PATH=/app/data/config.json
+      
+      # Optional: Pre-configure default inbox from environment variables
+      # - DEFAULT_INBOX_ENABLED=true
+      # - DEFAULT_INBOX_NAME=My Default Inbox
+      # - DEFAULT_DEPLOYMENT_URL=http://executive-ai-assistant:2024
+      # - DEFAULT_ASSISTANT_ID=agent
+      
+      # Optional: Pre-configure additional inboxes via JSON
+      # - ADDITIONAL_INBOXES=[{"id":"inbox2","name":"Second Inbox","deploymentUrl":"http://other:2024","assistantId":"agent"}]
+    
+    # =========================================================================
+    # PERSISTENT STORAGE VOLUMES (Optional)
+    # =========================================================================
+    # Uncomment to enable persistent server-side configuration storage
+    # This allows configuration to sync across devices and survive browser cache clears
+    # Must also set USE_SERVER_STORAGE=true in environment variables above
+    # volumes:
+    #   - agent-inbox-config:/app/data
     
     # Health check
     healthcheck:
@@ -49,3 +79,11 @@ services:
     #     reservations:
     #       cpus: '0.25'
     #       memory: 128M
+
+# =============================================================================
+# VOLUMES (Optional)
+# =============================================================================
+# Uncomment to create named volume for persistent configuration storage
+# volumes:
+#   agent-inbox-config:
+#     driver: local
