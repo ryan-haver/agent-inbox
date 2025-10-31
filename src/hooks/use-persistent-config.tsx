@@ -46,14 +46,14 @@ export interface PersistentConfig {
     
     // Phase 4A+: Global inbox behavior defaults (scalable structure)
     inboxDefaults?: {
-      defaultView?: 'interrupted' | 'pending' | 'all';
+      defaultView?: 'interrupted' | 'idle' | 'busy' | 'error' | 'all';
       // Future: sortOrder, autoRefresh, refreshInterval, etc.
     };
     
     // Phase 4A+: Per-inbox setting overrides (scalable structure)
     inboxSettings?: {
       [inboxId: string]: {
-        defaultView?: 'interrupted' | 'pending' | 'all';
+        defaultView?: 'interrupted' | 'idle' | 'busy' | 'error' | 'all';
         // Future: inbox-specific sortOrder, notificationsEnabled, etc.
       };
     };
@@ -81,9 +81,10 @@ export interface UsePersistentConfigReturn {
   serverEnabled: boolean;
   isLoading: boolean;
   lastSync: Date | null;
+  isSaving: boolean; // Phase 4A+: Track save status
   saveToServer: () => Promise<boolean>;
   loadFromServer: () => Promise<boolean>;
-  updateConfig: (updates: Partial<PersistentConfig>) => void;
+  updateConfig: (updates: Partial<PersistentConfig>, immediate?: boolean) => void; // Phase 4A+: immediate flag
 }
 
 /**
@@ -184,10 +185,13 @@ export function usePersistentConfig(): UsePersistentConfigReturn {
   const [serverEnabled, setServerEnabled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastSync, setLastSync] = useState<Date | null>(getLastSyncTime());
+  const [isSaving, setIsSaving] = useState<boolean>(false); // Phase 4A+: Track save status
   
   // Use ref to track if initial sync has happened
   const hasInitialSynced = useRef(false);
   const syncIntervalRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout>(); // Phase 4A+: Track debounced save timer
+  const hasPendingSave = useRef(false); // Phase 4A+: Track if we have unsaved changes
 
   /**
    * Check if server storage is enabled
@@ -278,14 +282,31 @@ export function usePersistentConfig(): UsePersistentConfigReturn {
 
   /**
    * Update configuration (both in state and localStorage)
+   * @param updates - Partial configuration to merge
+   * @param immediate - If true, save to server immediately (for user settings). If false, debounce (for auto-saves)
    */
-  const updateConfig = useCallback((updates: Partial<PersistentConfig>) => {
+  const updateConfig = useCallback((updates: Partial<PersistentConfig>, immediate: boolean = false) => {
     setConfig((prev: PersistentConfig) => {
       const updated = { ...prev, ...updates };
       saveToLocalStorage(updated);
       return updated;
     });
-  }, []);
+    
+    // Phase 4A+: Mark that we have unsaved changes
+    hasPendingSave.current = true;
+    
+    // Phase 4A+: If immediate save requested (e.g., Settings UI), trigger save now
+    if (immediate && serverEnabled) {
+      // Clear any pending debounced save
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = undefined;
+      }
+      
+      // Trigger immediate save (will be handled by useEffect)
+      setIsSaving(true);
+    }
+  }, [serverEnabled]);
 
   /**
    * Periodic sync with server
@@ -293,13 +314,19 @@ export function usePersistentConfig(): UsePersistentConfigReturn {
   const syncWithServer = useCallback(async () => {
     if (!serverEnabled) return;
     
+    // Phase 4A+: Don't load from server if we have unsaved changes (avoid overwriting)
+    if (hasPendingSave.current || isSaving) {
+      console.log('[Persistent Config] Skipping sync - pending save in progress');
+      return;
+    }
+    
     try {
       // Load from server (server has precedence)
       await loadFromServer();
     } catch (error) {
       console.error('[Persistent Config] Sync error:', error);
     }
-  }, [serverEnabled, loadFromServer]);
+  }, [serverEnabled, loadFromServer, isSaving]);
 
   /**
    * Initial setup: check server status and perform first sync
@@ -354,24 +381,49 @@ export function usePersistentConfig(): UsePersistentConfigReturn {
   }, [serverEnabled, isLoading, syncWithServer]);
 
   /**
-   * Save to server whenever config changes (debounced via useEffect)
+   * Save to server whenever config changes
+   * - Immediate save if isSaving is true (user-initiated settings changes)
+   * - Debounced save otherwise (auto-saves like drafts)
    */
   useEffect(() => {
     if (!serverEnabled || isLoading || !hasInitialSynced.current) return;
+    if (!hasPendingSave.current) return; // No changes to save
     
-    // Debounce: wait 1 second after last change before saving
-    const timeoutId = setTimeout(() => {
-      saveToServer();
+    // Phase 4A+: Immediate save if requested
+    if (isSaving) {
+      saveToServer().then((success) => {
+        if (success) {
+          hasPendingSave.current = false;
+          setIsSaving(false);
+        }
+      });
+      return;
+    }
+    
+    // Phase 4A+: Otherwise debounce: wait 1 second after last change before saving
+    saveTimeoutRef.current = setTimeout(() => {
+      setIsSaving(true);
+      saveToServer().then((success) => {
+        if (success) {
+          hasPendingSave.current = false;
+          setIsSaving(false);
+        }
+      });
     }, 1000);
     
-    return () => clearTimeout(timeoutId);
-  }, [config, serverEnabled, isLoading, saveToServer]);
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [config, serverEnabled, isLoading, saveToServer, isSaving]);
 
   return {
     config,
     serverEnabled,
     isLoading,
     lastSync,
+    isSaving, // Phase 4A+: Save status
     saveToServer,
     loadFromServer,
     updateConfig,

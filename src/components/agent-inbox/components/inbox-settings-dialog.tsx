@@ -33,7 +33,7 @@ export function InboxSettingsDialog({
     if (value === 'use-global') {
       // Clear the override (revert to global)
       const newConfig = clearInboxSetting(inbox.id, 'defaultView', config);
-      updateConfig(newConfig);
+      updateConfig(newConfig, true); // Phase 4A+: Immediate save for settings
     } else {
       // Set the override
       const newConfig = setInboxSetting(
@@ -42,7 +42,7 @@ export function InboxSettingsDialog({
         value,
         config
       );
-      updateConfig(newConfig);
+      updateConfig(newConfig, true); // Phase 4A+: Immediate save for settings
     }
   };
 

@@ -163,9 +163,14 @@ export function useInboxes() {
         const selectedInbox = currentInboxes.find((inbox) => inbox.selected);
         if (!selectedInbox) {
           currentInboxes[0].selected = true;
-          // Phase 4A+: Use global default view if no inbox parameter exists
+          // Phase 4A+: Check for per-inbox override, then global default
           const currentInboxParam = getSearchParam(INBOX_PARAM);
-          const defaultView = config.preferences?.inboxDefaults?.defaultView || "interrupted";
+          const defaultView = getInboxSetting(
+            currentInboxes[0].id,
+            'defaultView',
+            "interrupted",
+            config
+          );
           updateQueryParams(
             [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
             [currentInboxes[0].id, "0", "10", currentInboxParam || defaultView]
@@ -176,9 +181,14 @@ export function useInboxes() {
             JSON.stringify(currentInboxes)
           );
         } else {
-          // Phase 4A+: Use global default view if no inbox parameter exists
+          // Phase 4A+: Check for per-inbox override, then global default
           const currentInboxParam = getSearchParam(INBOX_PARAM);
-          const defaultView = config.preferences?.inboxDefaults?.defaultView || "interrupted";
+          const defaultView = getInboxSetting(
+            selectedInbox.id,
+            'defaultView',
+            "interrupted",
+            config
+          );
           updateQueryParams(
             [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
             [selectedInbox.id, "0", "10", currentInboxParam || defaultView]
