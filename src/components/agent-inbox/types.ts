@@ -144,7 +144,7 @@ export type ThreadStatusWithAll = EnhancedThreadStatus | "all";
 /**
  * Inbox view type for default view settings.
  */
-export type InboxView = 'interrupted' | 'pending' | 'all';
+export type InboxView = 'interrupted' | 'idle' | 'busy' | 'error' | 'all';
 
 /**
  * Type of submission for human responses.

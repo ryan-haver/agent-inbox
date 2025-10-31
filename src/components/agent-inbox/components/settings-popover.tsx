@@ -13,7 +13,7 @@ import { useLocalStorage } from "../hooks/use-local-storage";
 import { INBOX_PARAM, LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY } from "../constants";
 import { useThreadsContext } from "../contexts/ThreadContext";
 import { useQueryParams } from "../hooks/use-query-params";
-import { ThreadStatusWithAll } from "../types";
+import { ThreadStatusWithAll, InboxView } from "../types";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -310,16 +310,18 @@ export function SettingsPopover() {
                           ...config.preferences,
                           inboxDefaults: {
                             ...config.preferences?.inboxDefaults,
-                            defaultView: e.target.value as 'interrupted' | 'pending' | 'all',
+                            defaultView: e.target.value as InboxView,
                           },
                         },
                       });
                     }}
                     className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="interrupted">Interrupted</option>
-                    <option value="pending">Pending</option>
                     <option value="all">All</option>
+                    <option value="interrupted">Interrupted</option>
+                    <option value="idle">Idle</option>
+                    <option value="busy">Busy</option>
+                    <option value="error">Error</option>
                   </select>
                 </div>
                 
