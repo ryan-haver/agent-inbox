@@ -38,14 +38,14 @@ export interface StoredConfiguration {
 
     // Phase 4A+: Global inbox behavior defaults (scalable structure)
     inboxDefaults?: {
-      defaultView?: "interrupted" | "pending" | "all";
+      defaultView?: "interrupted" | "idle" | "busy" | "error" | "all";
       // Future: sortOrder, autoRefresh, refreshInterval, etc.
     };
 
     // Phase 4A+: Per-inbox setting overrides (scalable structure)
     inboxSettings?: {
       [inboxId: string]: {
-        defaultView?: "interrupted" | "pending" | "all";
+        defaultView?: "interrupted" | "idle" | "busy" | "error" | "all";
         // Future: inbox-specific sortOrder, notificationsEnabled, etc.
       };
     };
