@@ -48,13 +48,6 @@ fi
 # Get network mode based on container networking
 # Docker host IP detection for displaying helpful access URLs
 
-echo "📍 Container Information:"
-echo "   - Container IP(s): ${CONTAINER_IPS}"
-echo "   - Network Mode: ${NETWORK_MODE}"
-echo "   - Internal Port: 3000"
-echo "   - Environment: ${NODE_ENV:-production}"
-echo ""
-
 echo "🌐 Access Agent Inbox:"
 echo ""
 
@@ -66,38 +59,29 @@ case "$NETWORK_MODE" in
         for IP in $ALL_IPS; do
             echo "   🔗 http://${IP}:3000"
         done
-        echo ""
-        echo "   💡 Use any of the above URLs from any device on your network"
         ;;
     
     "host")
-        echo "   ✅ HOST MODE DETECTED - Container uses host networking"
+        echo "   ✅ HOST MODE - Access via your server IP on port 3000"
         echo ""
-        echo "   🔗 http://YOUR_SERVER_IP:3000"
-        echo ""
-        echo "   💡 Access via your server's IP address on port 3000"
+        if [ -n "$HOST_IP" ]; then
+            echo "   🔗 http://${HOST_IP}:3000"
+        else
+            echo "   � http://YOUR_SERVER_IP:3000"
+        fi
         ;;
     
     "bridge"|*)
-        echo "   ✅ BRIDGE MODE DETECTED - Standard Docker networking"
+        echo "   ✅ BRIDGE MODE - Standard Docker port mapping"
         echo ""
-        echo "   📍 From inside Docker network:"
-        echo "      http://${CONTAINER_IPS}:3000"
-        echo ""
-        if [ -n "$GATEWAY_IP" ] && [ "$GATEWAY_IP" != "0.0.0.0" ]; then
-            echo "   📍 From host/external:"
-            echo "      http://${GATEWAY_IP}:${HOST_PORT:-3000}"
-            echo ""
-        fi
         
-        # Display complete URL if both HOST_IP and HOST_PORT are provided
+        # Display complete URL based on what variables are provided
         if [ -n "$HOST_IP" ] && [ -n "$HOST_PORT" ]; then
-            echo "   💡 Access at: http://${HOST_IP}:${HOST_PORT}"
+            echo "   � http://${HOST_IP}:${HOST_PORT}"
         elif [ -n "$HOST_IP" ]; then
-            echo "   💡 Access at: http://${HOST_IP}:${HOST_PORT:-3000}"
+            echo "   � http://${HOST_IP}:${HOST_PORT:-3000}"
         else
-            echo "   💡 Access at: http://YOUR_SERVER_IP:${HOST_PORT:-3000}"
-            echo "      (Replace YOUR_SERVER_IP with your server's IP address)"
+            echo "   � http://YOUR_SERVER_IP:${HOST_PORT:-3000}"
         fi
         ;;
 esac
