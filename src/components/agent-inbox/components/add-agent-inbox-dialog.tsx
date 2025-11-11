@@ -51,9 +51,10 @@ export function AddAgentInboxDialog({
   const [name, setName] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  
+
   // Persistent storage hook for server-side sync
-  const { config, serverEnabled, updateConfig, isLoading } = usePersistentConfig();
+  const { config, serverEnabled, updateConfig, isLoading } =
+    usePersistentConfig();
 
   const noInboxesFoundParam = searchParams.get(NO_INBOXES_FOUND_PARAM);
 
@@ -63,21 +64,23 @@ export function AddAgentInboxDialog({
       if (typeof window === "undefined") {
         return;
       }
-      
+
       // Wait for initial server load to complete before checking inboxes
       if (isLoading) {
         logger.log("Waiting for server config to load...");
         return;
       }
-      
-      // If there are already inboxes in the config (from server storage), 
+
+      // If there are already inboxes in the config (from server storage),
       // we don't need to show the welcome dialog
       if (config.inboxes && config.inboxes.length > 0) {
-        logger.log("Found existing inboxes in server config, skipping welcome dialog");
+        logger.log(
+          "Found existing inboxes in server config, skipping welcome dialog"
+        );
         updateQueryParams(NO_INBOXES_FOUND_PARAM);
         return;
       }
-      
+
       if (noInboxesFoundParam === "true") {
         setOpen(true);
       }
@@ -92,9 +95,11 @@ export function AddAgentInboxDialog({
       // Check if there are any default values from environment variables
       // These would be in the initial config loaded from the server
       const hasDefaults = graphId === "" && deploymentUrl === "" && name === "";
-      
+
       if (hasDefaults && serverEnabled) {
-        logger.log("Checking for default inbox configuration from environment...");
+        logger.log(
+          "Checking for default inbox configuration from environment..."
+        );
         // The server will return defaults in the initial config if env vars are set
         // We don't auto-populate here since the server would have already created
         // the inbox in config.inboxes if DEFAULT_INBOX_ENABLED=true
@@ -176,29 +181,29 @@ export function AddAgentInboxDialog({
       };
 
       logger.log("Adding inbox:", newInbox);
-      
+
       // Add to localStorage first (immediate update)
       addAgentInbox(newInbox);
-      
+
       // If server storage enabled, sync to server before reload
       if (serverEnabled) {
         try {
           const updatedInboxes = [...(config.inboxes || []), newInbox];
-          
+
           // Update config state
           updateConfig({ inboxes: updatedInboxes });
-          
+
           // Manually save to server and WAIT for completion
-          const response = await fetch('/api/config', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const response = await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...config, inboxes: updatedInboxes }),
           });
-          
+
           if (!response.ok) {
             throw new Error(`Server save failed: ${response.status}`);
           }
-          
+
           logger.log("Inbox synced to server storage");
         } catch (error) {
           logger.error("Failed to sync inbox to server storage:", error);

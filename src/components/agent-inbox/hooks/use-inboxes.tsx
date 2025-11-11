@@ -17,7 +17,11 @@ import { logger } from "../utils/logger";
 import { runInboxBackfill } from "../utils/backfill";
 import { usePersistentConfig } from "@/hooks/use-persistent-config";
 import { getInboxSetting } from "@/lib/inbox-settings-utils";
-import { findInboxByIdentifier, getInboxUrlIdentifier, getUniqueSlug } from "@/lib/inbox-slug-utils";
+import {
+  findInboxByIdentifier,
+  getInboxUrlIdentifier,
+  getUniqueSlug,
+} from "@/lib/inbox-slug-utils";
 
 /**
  * Hook for managing agent inboxes
@@ -38,7 +42,7 @@ export function useInboxes() {
   const { toast } = useToast();
   const [agentInboxes, setAgentInboxes] = useState<AgentInbox[]>([]);
   const initialLoadComplete = useRef(false);
-  
+
   // Get persistent config to check for server-side inboxes
   const { config, serverEnabled, isLoading } = usePersistentConfig();
 
@@ -49,25 +53,33 @@ export function useInboxes() {
     if (typeof window === "undefined") {
       return;
     }
-    
+
     // Wait for persistent config to load before initializing inboxes
     if (isLoading) {
-      logger.log("Waiting for persistent config to load before initializing inboxes...");
+      logger.log(
+        "Waiting for persistent config to load before initializing inboxes..."
+      );
       return;
     }
-    
+
     const initializeInboxes = async () => {
       try {
         // Check if there are inboxes from server config first
         if (serverEnabled && config.inboxes && config.inboxes.length > 0) {
-          logger.log("Found inboxes in server config, using those:", config.inboxes);
+          logger.log(
+            "Found inboxes in server config, using those:",
+            config.inboxes
+          );
           // Sync server inboxes to localStorage for backward compatibility
-          setItem(AGENT_INBOXES_LOCAL_STORAGE_KEY, JSON.stringify(config.inboxes));
+          setItem(
+            AGENT_INBOXES_LOCAL_STORAGE_KEY,
+            JSON.stringify(config.inboxes)
+          );
           setAgentInboxes(config.inboxes);
           getAgentInboxes(config.inboxes);
           return;
         }
-        
+
         // Run the backfill process first
         const backfillResult = await runInboxBackfill();
         if (backfillResult.success) {
@@ -150,7 +162,11 @@ export function useInboxes() {
           ...inbox,
           id: inbox.id || uuidv4(),
           // Generate slug if missing and name exists
-          slug: inbox.slug || (inbox.name ? getUniqueSlug(inbox.name, currentInboxes, inbox.id) : undefined),
+          slug:
+            inbox.slug ||
+            (inbox.name
+              ? getUniqueSlug(inbox.name, currentInboxes, inbox.id)
+              : undefined),
         };
       });
 
@@ -170,13 +186,18 @@ export function useInboxes() {
           const currentInboxParam = getSearchParam(INBOX_PARAM);
           const defaultView = getInboxSetting(
             currentInboxes[0].id,
-            'defaultView',
+            "defaultView",
             "interrupted",
             config
           );
           updateQueryParams(
             [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
-            [getInboxUrlIdentifier(currentInboxes[0]), "0", "10", currentInboxParam || defaultView]
+            [
+              getInboxUrlIdentifier(currentInboxes[0]),
+              "0",
+              "10",
+              currentInboxParam || defaultView,
+            ]
           );
           setAgentInboxes(currentInboxes);
           setItem(
@@ -188,13 +209,18 @@ export function useInboxes() {
           const currentInboxParam = getSearchParam(INBOX_PARAM);
           const defaultView = getInboxSetting(
             selectedInbox.id,
-            'defaultView',
+            "defaultView",
             "interrupted",
             config
           );
           updateQueryParams(
             [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
-            [getInboxUrlIdentifier(selectedInbox), "0", "10", currentInboxParam || defaultView]
+            [
+              getInboxUrlIdentifier(selectedInbox),
+              "0",
+              "10",
+              currentInboxParam || defaultView,
+            ]
           );
           setAgentInboxes(currentInboxes);
           setItem(
@@ -214,16 +240,21 @@ export function useInboxes() {
       let finalSelectedInboxId: string | null = null;
 
       // Param exists: Find inbox by slug, UUID, or name (in that order)
-      const selectedByParam = findInboxByIdentifier(agentInboxSearchParam, currentInboxes);
+      const selectedByParam = findInboxByIdentifier(
+        agentInboxSearchParam,
+        currentInboxes
+      );
 
       if (selectedByParam) {
         finalSelectedInboxId = selectedByParam.id;
         logger.log("Found inbox by search param:", finalSelectedInboxId);
-        
+
         // Update URL to use slug if the URL currently has UUID
         const urlIdentifier = getInboxUrlIdentifier(selectedByParam);
         if (urlIdentifier !== agentInboxSearchParam) {
-          logger.log(`Updating URL from ${agentInboxSearchParam} to slug: ${urlIdentifier}`);
+          logger.log(
+            `Updating URL from ${agentInboxSearchParam} to slug: ${urlIdentifier}`
+          );
           updateQueryParams(AGENT_INBOX_PARAM, urlIdentifier);
         }
       } else {
@@ -236,7 +267,10 @@ export function useInboxes() {
         if (finalSelectedInboxId) {
           // Update URL to reflect the actual selection (use slug if available)
           const firstInbox = currentInboxes[0];
-          updateQueryParams(AGENT_INBOX_PARAM, getInboxUrlIdentifier(firstInbox));
+          updateQueryParams(
+            AGENT_INBOX_PARAM,
+            getInboxUrlIdentifier(firstInbox)
+          );
         }
       }
 
@@ -270,30 +304,35 @@ export function useInboxes() {
   const addAgentInbox = useCallback(
     (agentInbox: AgentInbox) => {
       const agentInboxesStr = getItem(AGENT_INBOXES_LOCAL_STORAGE_KEY);
-      const existingInboxes: AgentInbox[] = agentInboxesStr && agentInboxesStr !== "[]" 
-        ? JSON.parse(agentInboxesStr) 
-        : [];
-      
+      const existingInboxes: AgentInbox[] =
+        agentInboxesStr && agentInboxesStr !== "[]"
+          ? JSON.parse(agentInboxesStr)
+          : [];
+
       const newInbox = {
         ...agentInbox,
         id: agentInbox.id || uuidv4(),
         // Generate slug from name if provided
-        slug: agentInbox.slug || (agentInbox.name ? getUniqueSlug(agentInbox.name, existingInboxes) : undefined),
+        slug:
+          agentInbox.slug ||
+          (agentInbox.name
+            ? getUniqueSlug(agentInbox.name, existingInboxes)
+            : undefined),
       };
 
       // Handle empty inboxes
       if (!agentInboxesStr || agentInboxesStr === "[]") {
         setAgentInboxes([newInbox]);
         setItem(AGENT_INBOXES_LOCAL_STORAGE_KEY, JSON.stringify([newInbox]));
-        
+
         // Get the default view for this new inbox
         const defaultView = getInboxSetting(
           newInbox.id,
-          'defaultView',
-          'interrupted',
+          "defaultView",
+          "interrupted",
           config
         );
-        
+
         // Set agent inbox, offset, and limit (use slug if available)
         updateQueryParams(
           [AGENT_INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM, INBOX_PARAM],
@@ -388,7 +427,10 @@ export function useInboxes() {
             AGENT_INBOXES_LOCAL_STORAGE_KEY,
             JSON.stringify(selectedInboxes)
           );
-          updateQueryParams(AGENT_INBOX_PARAM, getInboxUrlIdentifier(firstInbox));
+          updateQueryParams(
+            AGENT_INBOX_PARAM,
+            getInboxUrlIdentifier(firstInbox)
+          );
         } else {
           setItem(
             AGENT_INBOXES_LOCAL_STORAGE_KEY,
@@ -417,20 +459,20 @@ export function useInboxes() {
    * @param {boolean} replaceAll - Whether to replace all query parameters
    */
   const changeAgentInbox = useCallback(
-    (id: string, replaceAll?: boolean) => {
+    (id: string, _replaceAll?: boolean) => {
       // Find the inbox being selected to get its URL identifier
       const agentInboxesStr = getItem(AGENT_INBOXES_LOCAL_STORAGE_KEY);
       let selectedInbox: AgentInbox | undefined;
-      
+
       if (agentInboxesStr && agentInboxesStr !== "[]") {
         try {
           const parsedInboxes: AgentInbox[] = JSON.parse(agentInboxesStr);
-          selectedInbox = parsedInboxes.find(inbox => inbox.id === id);
+          selectedInbox = parsedInboxes.find((inbox) => inbox.id === id);
         } catch (error) {
           logger.error("Error parsing inboxes for changeAgentInbox", error);
         }
       }
-      
+
       // Update React state
       setAgentInboxes((prevInboxes) =>
         prevInboxes.map((inbox) => ({
@@ -460,14 +502,16 @@ export function useInboxes() {
       // Get the default view for this inbox (per-inbox override > global > app default)
       const defaultView = getInboxSetting(
         id,
-        'defaultView',
-        'interrupted', // app default
+        "defaultView",
+        "interrupted", // app default
         config
       );
 
       // Update URL parameters using client-side routing (no page reload)
       const url = new URL(window.location.href);
-      const urlIdentifier = selectedInbox ? getInboxUrlIdentifier(selectedInbox) : id;
+      const urlIdentifier = selectedInbox
+        ? getInboxUrlIdentifier(selectedInbox)
+        : id;
       const newParams = new URLSearchParams({
         [AGENT_INBOX_PARAM]: urlIdentifier,
         [OFFSET_PARAM]: "0",
@@ -475,7 +519,7 @@ export function useInboxes() {
         [INBOX_PARAM]: defaultView, // Use computed default view
       });
       const newUrl = url.pathname + "?" + newParams.toString();
-      
+
       // Use Next.js router for smooth client-side navigation (no flash)
       router.push(newUrl, { scroll: false });
     },

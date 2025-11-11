@@ -5,7 +5,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Settings, RefreshCw, Cloud, HardDrive, Bell, Inbox } from "lucide-react";
+import {
+  Settings,
+  RefreshCw,
+  Cloud,
+  HardDrive,
+  Bell,
+  Inbox,
+} from "lucide-react";
 import React from "react";
 import { PillButton } from "@/components/ui/pill-button";
 import { Label } from "@/components/ui/label";
@@ -33,9 +40,10 @@ export function SettingsPopover() {
   const [isRunningBackfill, setIsRunningBackfill] = React.useState(false);
   const [backfillCompleted, setBackfillCompleted] = React.useState(true);
   const { toast } = useToast();
-  
+
   // Persistent storage hook for server-side sync
-  const { config, serverEnabled, isLoading, updateConfig } = usePersistentConfig();
+  const { config, serverEnabled, isLoading, updateConfig } =
+    usePersistentConfig();
 
   React.useEffect(() => {
     setBackfillCompleted(isBackfillCompleted());
@@ -64,17 +72,23 @@ export function SettingsPopover() {
     } catch (e) {
       logger.error("Error getting/setting LangSmith API key", e);
     }
-  }, [langchainApiKey, config.langsmithApiKey, serverEnabled, getItem, updateConfig]);
+  }, [
+    langchainApiKey,
+    config.langsmithApiKey,
+    serverEnabled,
+    getItem,
+    updateConfig,
+  ]);
 
   const handleChangeLangChainApiKey = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const newKey = e.target.value;
     setLangchainApiKey(newKey);
-    
+
     // Save to localStorage (for backward compatibility)
     setItem(LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY, newKey);
-    
+
     // Also update persistent config if server storage is enabled
     if (serverEnabled) {
       updateConfig({ langsmithApiKey: newKey });
@@ -149,12 +163,14 @@ export function SettingsPopover() {
               Configuration settings for Agent Inbox
             </p>
             {!isLoading && (
-              <div className={cn(
-                "flex items-center gap-2 text-xs px-2 py-1 rounded-md",
-                serverEnabled 
-                  ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" 
-                  : "bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400"
-              )}>
+              <div
+                className={cn(
+                  "flex items-center gap-2 text-xs px-2 py-1 rounded-md",
+                  serverEnabled
+                    ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                    : "bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400"
+                )}
+              >
                 {serverEnabled ? (
                   <>
                     <Cloud className="h-3 w-3" />
@@ -176,10 +192,9 @@ export function SettingsPopover() {
                   LangSmith API Key <span className="text-red-500">*</span>
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  {serverEnabled 
+                  {serverEnabled
                     ? "Synced to server storage. Changes will be saved to /app/data/config.json and accessible from all devices."
-                    : "This value is stored in your browser's local storage and is only used to authenticate requests sent to your LangGraph server."
-                  }
+                    : "This value is stored in your browser's local storage and is only used to authenticate requests sent to your LangGraph server."}
                 </p>
               </div>
               <PasswordInput
@@ -191,7 +206,7 @@ export function SettingsPopover() {
                 onChange={handleChangeLangChainApiKey}
               />
             </div>
-            
+
             {/* Phase 4A: Notification Settings */}
             <div className="flex flex-col items-start gap-2 w-full border-t pt-4">
               <div className="flex flex-col gap-1 w-full items-start">
@@ -200,7 +215,8 @@ export function SettingsPopover() {
                   <Label>Notifications</Label>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Configure notification preferences. Full notification functionality will be implemented in a future update.
+                  Configure notification preferences. Full notification
+                  functionality will be implemented in a future update.
                 </p>
               </div>
               <div className="flex flex-col gap-3 w-full pl-6">
@@ -214,8 +230,11 @@ export function SettingsPopover() {
                           ...config.preferences,
                           notifications: {
                             enabled: checked === true,
-                            sound: config.preferences?.notifications?.sound ?? true,
-                            desktop: config.preferences?.notifications?.desktop ?? true,
+                            sound:
+                              config.preferences?.notifications?.sound ?? true,
+                            desktop:
+                              config.preferences?.notifications?.desktop ??
+                              true,
                           },
                         },
                       });
@@ -232,16 +251,22 @@ export function SettingsPopover() {
                   <Checkbox
                     id="notifications-sound"
                     checked={config.preferences?.notifications?.sound ?? true}
-                    disabled={!(config.preferences?.notifications?.enabled ?? true)}
+                    disabled={
+                      !(config.preferences?.notifications?.enabled ?? true)
+                    }
                     onCheckedChange={(checked) => {
                       updateConfig({
                         preferences: {
                           ...config.preferences,
                           notifications: {
                             ...config.preferences?.notifications,
-                            enabled: config.preferences?.notifications?.enabled ?? true,
+                            enabled:
+                              config.preferences?.notifications?.enabled ??
+                              true,
                             sound: checked === true,
-                            desktop: config.preferences?.notifications?.desktop ?? true,
+                            desktop:
+                              config.preferences?.notifications?.desktop ??
+                              true,
                           },
                         },
                       });
@@ -251,7 +276,8 @@ export function SettingsPopover() {
                     htmlFor="notifications-sound"
                     className={cn(
                       "text-sm leading-none cursor-pointer",
-                      !(config.preferences?.notifications?.enabled ?? true) && "opacity-50 cursor-not-allowed"
+                      !(config.preferences?.notifications?.enabled ?? true) &&
+                        "opacity-50 cursor-not-allowed"
                     )}
                   >
                     Play sound
@@ -261,15 +287,20 @@ export function SettingsPopover() {
                   <Checkbox
                     id="notifications-desktop"
                     checked={config.preferences?.notifications?.desktop ?? true}
-                    disabled={!(config.preferences?.notifications?.enabled ?? true)}
+                    disabled={
+                      !(config.preferences?.notifications?.enabled ?? true)
+                    }
                     onCheckedChange={(checked) => {
                       updateConfig({
                         preferences: {
                           ...config.preferences,
                           notifications: {
                             ...config.preferences?.notifications,
-                            enabled: config.preferences?.notifications?.enabled ?? true,
-                            sound: config.preferences?.notifications?.sound ?? true,
+                            enabled:
+                              config.preferences?.notifications?.enabled ??
+                              true,
+                            sound:
+                              config.preferences?.notifications?.sound ?? true,
                             desktop: checked === true,
                           },
                         },
@@ -280,7 +311,8 @@ export function SettingsPopover() {
                     htmlFor="notifications-desktop"
                     className={cn(
                       "text-sm leading-none cursor-pointer",
-                      !(config.preferences?.notifications?.enabled ?? true) && "opacity-50 cursor-not-allowed"
+                      !(config.preferences?.notifications?.enabled ?? true) &&
+                        "opacity-50 cursor-not-allowed"
                     )}
                   >
                     Desktop notifications
@@ -293,27 +325,38 @@ export function SettingsPopover() {
             <div className="space-y-3 border-t pt-4">
               <div className="flex items-center gap-2">
                 <Inbox className="w-4 h-4 text-gray-700" />
-                <h3 className="text-sm font-semibold text-gray-900">Inbox Defaults</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Inbox Defaults
+                </h3>
               </div>
-              
+
               <div className="space-y-2 pl-6">
                 <div className="flex items-center justify-between">
-                  <label htmlFor="default-view" className="text-sm text-gray-700">
+                  <label
+                    htmlFor="default-view"
+                    className="text-sm text-gray-700"
+                  >
                     Default view when switching inboxes
                   </label>
                   <select
                     id="default-view"
-                    value={config.preferences?.inboxDefaults?.defaultView || 'interrupted'}
+                    value={
+                      config.preferences?.inboxDefaults?.defaultView ||
+                      "interrupted"
+                    }
                     onChange={(e) => {
-                      updateConfig({
-                        preferences: {
-                          ...config.preferences,
-                          inboxDefaults: {
-                            ...config.preferences?.inboxDefaults,
-                            defaultView: e.target.value as InboxView,
+                      updateConfig(
+                        {
+                          preferences: {
+                            ...config.preferences,
+                            inboxDefaults: {
+                              ...config.preferences?.inboxDefaults,
+                              defaultView: e.target.value as InboxView,
+                            },
                           },
                         },
-                      }, true); // Phase 4A+: Immediate save for settings
+                        true
+                      ); // Phase 4A+: Immediate save for settings
                     }}
                     className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
@@ -324,9 +367,10 @@ export function SettingsPopover() {
                     <option value="error">Error</option>
                   </select>
                 </div>
-                
+
                 <p className="text-xs text-gray-500">
-                  Choose which inbox view to show by default. Can be overridden per inbox.
+                  Choose which inbox view to show by default. Can be overridden
+                  per inbox.
                 </p>
               </div>
             </div>

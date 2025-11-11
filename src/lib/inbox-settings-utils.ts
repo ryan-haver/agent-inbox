@@ -1,5 +1,5 @@
-import { StoredConfiguration } from './config-storage';
-import { PersistentConfig } from '@/hooks/use-persistent-config';
+import { StoredConfiguration } from "./config-storage";
+import { PersistentConfig } from "@/hooks/use-persistent-config";
 
 // Accept both config types for flexibility
 type ConfigType = StoredConfiguration | PersistentConfig;
@@ -9,7 +9,7 @@ type ConfigType = StoredConfiguration | PersistentConfig;
  * 1. Per-inbox override (highest priority)
  * 2. Global default (medium priority)
  * 3. App default (fallback)
- * 
+ *
  * This pattern scales to any future inbox-specific settings.
  */
 export function getInboxSetting<T>(
@@ -19,13 +19,17 @@ export function getInboxSetting<T>(
   config: ConfigType
 ): T {
   // 1. Check per-inbox override first
-  const inboxOverride = (config.preferences?.inboxSettings?.[inboxId] as any)?.[settingKey];
+  const inboxOverride = (config.preferences?.inboxSettings?.[inboxId] as any)?.[
+    settingKey
+  ];
   if (inboxOverride !== undefined) return inboxOverride;
-  
+
   // 2. Fall back to global default
-  const globalSetting = (config.preferences?.inboxDefaults as any)?.[settingKey];
+  const globalSetting = (config.preferences?.inboxDefaults as any)?.[
+    settingKey
+  ];
   if (globalSetting !== undefined) return globalSetting;
-  
+
   // 3. Fall back to app default
   return appDefault;
 }
@@ -72,7 +76,7 @@ export function clearInboxSetting(
       inboxSettings[inboxId] = rest;
     }
   }
-  
+
   return {
     ...config,
     preferences: {

@@ -41,7 +41,7 @@ function InboxButton({
   onClick: () => void;
 }) {
   const isSelected = selectedInbox === label.toLowerCase();
-  
+
   return (
     <Button
       onClick={onClick}

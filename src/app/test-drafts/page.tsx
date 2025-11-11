@@ -8,29 +8,30 @@ import { Undo2 } from "lucide-react";
 
 /**
  * Mock Test Page for Draft Auto-Save Feature
- * 
+ *
  * This page allows testing the draft auto-save functionality without
  * needing a full LangSmith setup or real threads.
  */
 export default function TestDraftsPage() {
   const [mounted, setMounted] = useState(false);
-  
+
   // Prevent hydration issues
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   if (!mounted) {
     return <div className="p-8">Loading test page...</div>;
   }
-  
+
   return <TestDraftsContent />;
 }
 
 function TestDraftsContent() {
   const [threadId, setThreadId] = useState("test-thread-1");
   const [responseText, setResponseText] = useState("");
-  const { loadDraft, saveDraft, discardDraft, hasDraft, getLastSaved } = useDraftStorage();
+  const { loadDraft, saveDraft, discardDraft, hasDraft, getLastSaved } =
+    useDraftStorage();
 
   // Load draft when threadId changes
   React.useEffect(() => {
@@ -74,7 +75,8 @@ function TestDraftsContent() {
           Draft Auto-Save Test Page
         </h1>
         <p className="text-gray-600 mb-8">
-          Test the draft auto-save functionality without needing LangSmith configuration
+          Test the draft auto-save functionality without needing LangSmith
+          configuration
         </p>
 
         {/* Test Instructions */}
@@ -84,22 +86,26 @@ function TestDraftsContent() {
           </h2>
           <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
             <li>
-              <strong>Test 1:</strong> Type in the textarea below, wait 5 seconds, see "Draft saved" indicator
+              <strong>Test 1:</strong> Type in the textarea below, wait 5
+              seconds, see &ldquo;Draft saved&rdquo; indicator
             </li>
             <li>
               <strong>Test 2:</strong> Refresh page (F5), verify draft restores
             </li>
             <li>
-              <strong>Test 3:</strong> Switch between threads, verify each maintains its own draft
+              <strong>Test 3:</strong> Switch between threads, verify each
+              maintains its own draft
             </li>
             <li>
               <strong>Test 4:</strong> Click Reset, verify draft is discarded
             </li>
             <li>
-              <strong>Test 5:</strong> Type draft, submit, verify draft is cleaned up
+              <strong>Test 5:</strong> Type draft, submit, verify draft is
+              cleaned up
             </li>
             <li>
-              <strong>Test 6:</strong> Open browser console (F12) to see debug logs
+              <strong>Test 6:</strong> Open browser console (F12) to see debug
+              logs
             </li>
           </ol>
         </div>
@@ -189,19 +195,25 @@ function TestDraftsContent() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-600">Thread 1:</span>
-              <span className={`ml-2 font-medium ${hasDraft("test-thread-1") ? "text-green-600" : "text-gray-400"}`}>
+              <span
+                className={`ml-2 font-medium ${hasDraft("test-thread-1") ? "text-green-600" : "text-gray-400"}`}
+              >
                 {hasDraft("test-thread-1") ? "✓ Has Draft" : "○ No Draft"}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Thread 2:</span>
-              <span className={`ml-2 font-medium ${hasDraft("test-thread-2") ? "text-green-600" : "text-gray-400"}`}>
+              <span
+                className={`ml-2 font-medium ${hasDraft("test-thread-2") ? "text-green-600" : "text-gray-400"}`}
+              >
                 {hasDraft("test-thread-2") ? "✓ Has Draft" : "○ No Draft"}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Thread 3:</span>
-              <span className={`ml-2 font-medium ${hasDraft("test-thread-3") ? "text-green-600" : "text-gray-400"}`}>
+              <span
+                className={`ml-2 font-medium ${hasDraft("test-thread-3") ? "text-green-600" : "text-gray-400"}`}
+              >
                 {hasDraft("test-thread-3") ? "✓ Has Draft" : "○ No Draft"}
               </span>
             </div>
@@ -214,9 +226,14 @@ function TestDraftsContent() {
             💡 Testing Tips
           </h3>
           <ul className="list-disc list-inside space-y-2 text-sm text-yellow-800">
-            <li>Open browser console (F12) to see draft save/load debug messages</li>
+            <li>
+              Open browser console (F12) to see draft save/load debug messages
+            </li>
             <li>The 5-second timer resets each time you type (debounced)</li>
-            <li>Try typing quickly, then wait - should only save once after 5 seconds</li>
+            <li>
+              Try typing quickly, then wait - should only save once after 5
+              seconds
+            </li>
             <li>Page refresh should restore all drafts in all threads</li>
             <li>Each thread maintains its own independent draft</li>
           </ul>

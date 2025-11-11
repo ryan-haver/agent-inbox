@@ -34,9 +34,23 @@ import { AddAgentInboxDialog } from "../agent-inbox/components/add-agent-inbox-d
 import { useLocalStorage } from "../agent-inbox/hooks/use-local-storage";
 import { DropdownDialogMenu } from "../agent-inbox/components/dropdown-and-dialog";
 import { usePersistentConfig } from "@/hooks/use-persistent-config";
-import { DndContext, closestCenter, DragEndEvent, PointerSensor, useSensor, useSensors, DragOverlay, DragStartEvent } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import {
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { AgentInbox } from "../agent-inbox/types";
 
 /**
@@ -50,14 +64,26 @@ interface SortableInboxItemProps {
   deleteAgentInbox: (id: string) => void;
 }
 
-function SortableInboxItem({ item, idx, changeAgentInbox, deleteAgentInbox }: SortableInboxItemProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+function SortableInboxItem({
+  item,
+  idx,
+  changeAgentInbox,
+  deleteAgentInbox,
+}: SortableInboxItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     // Hide the original completely when dragging (overlay shows it instead)
-    visibility: isDragging ? ('hidden' as const) : ('visible' as const),
+    visibility: isDragging ? ("hidden" as const) : ("visible" as const),
   };
 
   const label = item.name || prettifyText(item.graphId);
@@ -105,10 +131,7 @@ function SortableInboxItem({ item, idx, changeAgentInbox, deleteAgentInbox }: So
           </Tooltip>
         </TooltipProvider>
 
-        <DropdownDialogMenu
-          item={item}
-          deleteAgentInbox={deleteAgentInbox}
-        />
+        <DropdownDialogMenu item={item} deleteAgentInbox={deleteAgentInbox} />
       </SidebarMenuItem>
     </div>
   );
@@ -134,19 +157,21 @@ export function AppSidebar() {
   // Phase 4A: Apply saved inbox ordering
   const orderedInboxes = React.useMemo(() => {
     const inboxOrder = config.preferences?.inboxOrder || [];
-    
+
     if (!inboxOrder.length) {
       return agentInboxes; // No saved order, use default
     }
 
     // Sort inboxes according to saved order
     const ordered = inboxOrder
-      .map(id => agentInboxes.find(inbox => inbox.id === id))
+      .map((id) => agentInboxes.find((inbox) => inbox.id === id))
       .filter(Boolean) as AgentInbox[];
 
     // Add any new inboxes not in saved order (append to end)
-    const newInboxes = agentInboxes.filter(inbox => !inboxOrder.includes(inbox.id));
-    
+    const newInboxes = agentInboxes.filter(
+      (inbox) => !inboxOrder.includes(inbox.id)
+    );
+
     return [...ordered, ...newInboxes];
   }, [agentInboxes, config.preferences?.inboxOrder]);
 
@@ -158,31 +183,33 @@ export function AppSidebar() {
   // Phase 4A: Handle drag end event
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    
+
     setActiveId(null); // Clear active dragging state
 
     if (!over || active.id === over.id) {
       return; // No change
     }
 
-    const oldIndex = orderedInboxes.findIndex(i => i.id === active.id);
-    const newIndex = orderedInboxes.findIndex(i => i.id === over.id);
+    const oldIndex = orderedInboxes.findIndex((i) => i.id === active.id);
+    const newIndex = orderedInboxes.findIndex((i) => i.id === over.id);
 
     // Reorder array
     const reordered = arrayMove(orderedInboxes, oldIndex, newIndex);
-    const newInboxOrder = reordered.map(i => i.id);
+    const newInboxOrder = reordered.map((i) => i.id);
 
     // Save new order to persistent config
     updateConfig({
       preferences: {
         ...config.preferences,
-        inboxOrder: newInboxOrder
-      }
+        inboxOrder: newInboxOrder,
+      },
     });
   }
 
   // Get the inbox being dragged for the overlay
-  const activeInbox = activeId ? orderedInboxes.find(i => i.id === activeId) : null;
+  const activeInbox = activeId
+    ? orderedInboxes.find((i) => i.id === activeId)
+    : null;
 
   React.useEffect(() => {
     try {
@@ -227,7 +254,7 @@ export function AppSidebar() {
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={orderedInboxes.map(i => i.id)}
+                    items={orderedInboxes.map((i) => i.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     {orderedInboxes.map((item, idx) => (
@@ -250,7 +277,8 @@ export function AppSidebar() {
                             <House className="w-5 h-5 text-green-500" />
                           )}
                           <span className="font-medium text-gray-800">
-                            {activeInbox.name || prettifyText(activeInbox.graphId)}
+                            {activeInbox.name ||
+                              prettifyText(activeInbox.graphId)}
                           </span>
                         </div>
                       </div>

@@ -19,11 +19,12 @@ export function AgentInbox<
 >() {
   const { searchParams, updateQueryParams, getSearchParam } = useQueryParams();
   const { config, isLoading: configLoading } = usePersistentConfig();
-  
+
   // Phase 4A+: Initialize filter from global default view or default to "interrupted"
   const [_selectedInbox, setSelectedInbox] =
     React.useState<ThreadStatusWithAll>(
-      (config.preferences?.inboxDefaults?.defaultView as ThreadStatusWithAll) || "interrupted"
+      (config.preferences?.inboxDefaults?.defaultView as ThreadStatusWithAll) ||
+        "interrupted"
     );
   const { saveScrollPosition, restoreScrollPosition } = useScrollPosition();
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -34,7 +35,7 @@ export function AgentInbox<
 
   // Need to track first render to avoid restoring scroll on initial page load
   const isFirstRender = React.useRef(true);
-  
+
   // Track if inbox has been initialized (for applying global default on first load)
   const inboxInitialized = React.useRef(false);
 
@@ -117,13 +118,15 @@ export function AgentInbox<
       const currentInbox = getSearchParam(INBOX_PARAM) as
         | ThreadStatusWithAll
         | undefined;
-      
+
       // Phase 4A+: On first load, always use global default (ignore stale URL params)
       // This ensures bookmarked URLs or browser-cached URLs don't override user preference
       if (!inboxInitialized.current) {
         inboxInitialized.current = true;
-        const defaultInbox = (config.preferences?.inboxDefaults?.defaultView as ThreadStatusWithAll) || "interrupted";
-        
+        const defaultInbox =
+          (config.preferences?.inboxDefaults
+            ?.defaultView as ThreadStatusWithAll) || "interrupted";
+
         // Set default inbox from settings, ensuring offset, limit, and inbox are all set
         updateQueryParams(
           [INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM],
@@ -131,11 +134,13 @@ export function AgentInbox<
         );
         return; // Exit early on first load
       }
-      
+
       if (!currentInbox) {
         // If no inbox param in URL, use global default
-        const defaultInbox = (config.preferences?.inboxDefaults?.defaultView as ThreadStatusWithAll) || "interrupted";
-        
+        const defaultInbox =
+          (config.preferences?.inboxDefaults
+            ?.defaultView as ThreadStatusWithAll) || "interrupted";
+
         // Set default inbox if none selected, and ensure offset, limit, and inbox (tab) are set
         updateQueryParams(
           [INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM],

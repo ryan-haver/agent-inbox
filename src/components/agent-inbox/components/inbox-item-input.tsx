@@ -104,9 +104,10 @@ function ResponseComponent({
     e: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent
   ) => Promise<void>;
 }) {
-  const { loadDraft, saveDraft, discardDraft, hasDraft, getLastSaved } = useDraftStorage();
+  const { loadDraft, saveDraft, discardDraft, hasDraft, getLastSaved } =
+    useDraftStorage();
   const res = humanResponse.find((r) => r.type === "response");
-  
+
   // Load draft on mount
   React.useEffect(() => {
     const draft = loadDraft(threadId);
@@ -182,7 +183,11 @@ function ResponseComponent({
       </div>
 
       <div className="flex items-center justify-end w-full gap-2">
-        <Button variant="brand" disabled={streaming} onClick={handleSubmitAndDiscardDraft}>
+        <Button
+          variant="brand"
+          disabled={streaming}
+          onClick={handleSubmitAndDiscardDraft}
+        >
           Send Response
         </Button>
       </div>
