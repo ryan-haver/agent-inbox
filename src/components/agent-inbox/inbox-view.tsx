@@ -25,7 +25,8 @@ export function AgentInboxView<
   const { searchParams, updateQueryParams, getSearchParam } = useQueryParams();
   const { loading, threadData, agentInboxes, clearThreadData } =
     useThreadsContext<ThreadValues>();
-  const {config: _config, updateConfig: _updateConfig} = usePersistentConfig();
+  const { config: _config, updateConfig: _updateConfig } =
+    usePersistentConfig();
   const selectedInbox = (getSearchParam(INBOX_PARAM) ||
     "interrupted") as ThreadStatusWithAll;
   const scrollableContentRef = React.useRef<HTMLDivElement>(null);

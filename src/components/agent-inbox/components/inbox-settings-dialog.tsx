@@ -10,10 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { AgentInbox } from "../types";
 import { usePersistentConfig } from "@/hooks/use-persistent-config";
-import {
-  setInboxSetting,
-  clearInboxSetting,
-} from "@/lib/inbox-settings-utils";
+import { setInboxSetting, clearInboxSetting } from "@/lib/inbox-settings-utils";
 
 interface InboxSettingsDialogProps {
   open: boolean;
