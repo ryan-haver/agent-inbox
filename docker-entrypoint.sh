@@ -86,12 +86,19 @@ case "$NETWORK_MODE" in
         echo ""
         if [ -n "$GATEWAY_IP" ] && [ "$GATEWAY_IP" != "0.0.0.0" ]; then
             echo "   📍 From host/external:"
-            echo "      http://${GATEWAY_IP}:YOUR_MAPPED_PORT"
+            echo "      http://${GATEWAY_IP}:${HOST_PORT:-3000}"
             echo ""
         fi
         
-        echo "   💡 Access at: http://YOUR_SERVER_IP:YOUR_MAPPED_PORT"
-        echo "      (Use the port you configured in the template)"
+        # Display complete URL if both HOST_IP and HOST_PORT are provided
+        if [ -n "$HOST_IP" ] && [ -n "$HOST_PORT" ]; then
+            echo "   💡 Access at: http://${HOST_IP}:${HOST_PORT}"
+        elif [ -n "$HOST_IP" ]; then
+            echo "   💡 Access at: http://${HOST_IP}:${HOST_PORT:-3000}"
+        else
+            echo "   💡 Access at: http://YOUR_SERVER_IP:${HOST_PORT:-3000}"
+            echo "      (Replace YOUR_SERVER_IP with your server's IP address)"
+        fi
         ;;
 esac
 
