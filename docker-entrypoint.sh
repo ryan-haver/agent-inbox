@@ -4,6 +4,7 @@
 # =============================================================================
 # Provides helpful startup information including actual accessible URLs
 # Automatically detects: Bridge, MACVLAN, Host networking modes
+# Updated: 2025-11-11
 # =============================================================================
 
 set -e
