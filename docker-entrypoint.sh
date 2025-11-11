@@ -45,9 +45,8 @@ elif [ -z "$GATEWAY_IP" ] || [ "$GATEWAY_IP" = "0.0.0.0" ]; then
     NETWORK_MODE="host"
 fi
 
-# Get mapped port from environment variables
-# HOST_PORT can be passed as env var from Unraid template
-MAPPED_PORT="${HOST_PORT:-${PORT:-3000}}"
+# Get network mode based on container networking
+# Docker host IP detection for displaying helpful access URLs
 
 echo "📍 Container Information:"
 echo "   - Container IP(s): ${CONTAINER_IPS}"
@@ -86,18 +85,13 @@ case "$NETWORK_MODE" in
         echo "      http://${CONTAINER_IPS}:3000"
         echo ""
         if [ -n "$GATEWAY_IP" ] && [ "$GATEWAY_IP" != "0.0.0.0" ]; then
-            echo "   📍 From host/external (likely):"
-            echo "      http://${GATEWAY_IP}:${MAPPED_PORT}"
+            echo "   📍 From host/external:"
+            echo "      http://${GATEWAY_IP}:YOUR_MAPPED_PORT"
             echo ""
         fi
         
-        if [ "$MAPPED_PORT" != "3000" ]; then
-            echo "   💡 You mapped host port ${MAPPED_PORT} → container port 3000"
-            echo "      Access at: http://YOUR_SERVER_IP:${MAPPED_PORT}"
-        else
-            echo "   💡 Access at: http://YOUR_SERVER_IP:3000"
-            echo "      (or your custom mapped port if different)"
-        fi
+        echo "   💡 Access at: http://YOUR_SERVER_IP:YOUR_MAPPED_PORT"
+        echo "      (Use the port you configured in the template)"
         ;;
 esac
 
